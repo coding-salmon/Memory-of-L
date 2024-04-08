@@ -1,0 +1,2 @@
+검 효과
+<a href="https://kr.freepik.com/free-vector/cartoon-sword-with-light-trace-animation-sprite_35393040.htm#page=5&query=sprites&position=47&from_view=keyword&track=ais&uuid=d097114d-ef20-477a-91f7-083c78e95f48">작가 upklyak</a> 출처 Freepik

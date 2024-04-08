@@ -1,7 +1,7 @@
 
-class MyScene extends Phaser.Scene{
+class GameScene extends Phaser.Scene{
     constructor(){
-        super({ key: 'MyScene'});
+        super({ key: 'GameScene'});
         this.enemies = null; // 전역 변수로 선언합니다.
         this.player = null; // player 전역 변수로 선언
         this.playerHp = 100; // 플레이어의 초기 HP
@@ -10,7 +10,66 @@ class MyScene extends Phaser.Scene{
         this.score = 0; //점수
         this.gold  = 0; // 골드
         this.goldGroup = null; // 골드 그룹
+        this.menuGroup = null; //메뉴 그룹
         this.menuOpen = false; // 메뉴 창이 열려 있는지 여부를 나타내는 변수 추가
+        this.playerLevel = 1; //초기 레벨은 1로 설정
+        this.playerMaxLevel = 52; //최대 레벨
+        this.exp = null;
+        this.maxExp =null;
+        this.expNeededPerLevel = [
+            100,  // 레벨 1
+            125,  // 레벨 2
+            175,  // 레벨 3
+            200,  // 레벨 4
+            250,  // 레벨 5
+            546,  // 레벨 6
+            1105, // 레벨 7
+            1695, // 레벨 8
+            2485, // 레벨 9
+            3419, // 레벨 10
+            4611, // 레벨 11
+            6003, // 레벨 12
+            7616, // 레벨 13
+            9496, // 레벨 14
+            11601, // 레벨 15
+            14101, // 레벨 16
+            17079, // 레벨 17
+            20525, // 레벨 18
+            24457, // 레벨 19
+            28813, // 레벨 20
+            33753, // 레벨 21
+            39347, // 레벨 22
+            45689, // 레벨 23
+            52897, // 레벨 24
+            61041, // 레벨 25
+            70241, // 레벨 26
+            80547, // 레벨 27
+            92029, // 레벨 28
+            104173, // 레벨 29
+            117681, // 레벨 30
+            132681, // 레벨 31
+            149289, // 레벨 32
+            167625, // 레벨 33
+            187813, // 레벨 34
+            209977, // 레벨 35
+            234241, // 레벨 36
+            260733, // 레벨 37
+            289581, // 레벨 38
+            320917, // 레벨 39
+            354881, // 레벨 40
+            391617, // 레벨 41
+            431273, // 레벨 42
+            474001, // 레벨 43
+            519957, // 레벨 44
+            569297, // 레벨 45
+            622181, // 레벨 46
+            678773, // 레벨 47
+            739253, // 레벨 48
+            803809, // 레벨 49
+            872641, // 레벨 50
+            946001, // 레벨 51
+            1024061 // 레벨 52
+        ]; // 각 레벨별 필요 경험치를 나타내는 배열
     }
 preload(){
     //여기서 게임에 필요한 리소스를 미리 불러옵니다.
@@ -67,43 +126,53 @@ preload(){
     //골드 이미지 생성
     this.load.image('gold','/node_modules/phaser/assets/gold/gold1.png')
 
+    //에너지볼트 이미지 생성
+    this.load.image('vault', '/node_modules/phaser/assets/magic/EnergyVault.png')
+
 
 
 }
 
 create(){
     //여기서 게임에 필요한 초기화 작업을 합니다.
+    console.log("게임 초기화 시작")
 
-     // 메뉴 버튼 생성
-    this.menuButton = this.add.text(750, 10, 'Menu', { fontSize: '20px', fill: '#fff' ,backgroundColor: '#000' })
-    .setInteractive()
-    .on('pointerdown', () => {
-         // 메뉴를 열기 위한 함수 호출
-        this.openMenu();
-    });
 
-    // ESC 키를 눌렀을 때 메뉴 창 열기/닫기 처리
-    this.input.keyboard.on('keydown-ESC', () => {
-        if (this.menuOpen) {
-            // 메뉴 창이 열려있으면 닫기
-            this.closeMenu();
-        } else {
-            // 메뉴 창이 닫혀있으면 열기
-            this.openMenu();
-        }
-    });
+
+    this.scene.launch('UIScene');
+
+    //메뉴 버튼 클릭 이벤트 핸들러 설정
+    this.menuButton = this.add.text(10,9, '[M o L]', {
+        fontSize:'20px',
+        fill: '#fb2b2b',
+        fontStyle:'bold'
+    })
+        .setInteractive()
+        .setDepth(3)
+        .on('pointerdown', ()=>{
+            this.scene.get('UIScene').toggleMenu();
+        });
+
+
+    //경험치 바의 생성
+    this.expBar = this.add.graphics();
+    this.updateExpBar(0);
+    //경험치 바의 depth 설정
+    this.expBar.setDepth(3);
+    
+    this.energyBolts = this.physics.add.group();
 
 
 
     //스코어 생성
-    this.scoreText = this.add.text(330, 1, 'Score: 0',{
+    this.scoreText = this.add.text(330, 9, 'Score: 0',{
         fontSize: '20px',
         fill: '#ffffff',
         fontStyle: 'bold' // 폰트 두께를 bold로 설정
     }).setOrigin(0.5,0).setDepth(3);
 
     // 골드 텍스트 생성 및 스타일 설정
-    this.goldText = this.add.text(470, 1, 'Gold: 0', {
+    this.goldText = this.add.text(470, 9, 'Gold: 0', {
         fontSize: '20px',
         fill: '#ffd700', // 골드 색상
         fontStyle: 'bold' // 폰트 두께를 bold로 설정
@@ -215,6 +284,13 @@ create(){
                 
     });
 
+    this.time.addEvent({
+        delay: 2000, //2초마다
+        callback: this.fireEnergyBolt,
+        callbackScope:this,
+        loop: true // 무한반복
+    })
+
     //키보드 입력 활성화
     this.cursors = this.input.keyboard.createCursorKeys();
     console.log(this.scoreText); // 스코어 텍스트 객체 정보 출력
@@ -223,88 +299,27 @@ create(){
     
 }
 
-openMenu() {
+//경험치 갱신 메서드
+updateExpBar(currentExp){
+    console.log("Player Level:", this.playerLevel, "Current Exp:", currentExp);
 
-    // 현재 Scene을 일시 정지
-    this.scene.pause();
+    this.currentExp = currentExp; // 현재 경험치를 업데이트
+    const expNeeded = this.expNeededPerLevel[this.playerLevel -1]; //현재 레벨에 필요한 총경험치
+    console.log("Exp Needed:", expNeeded);
+    const expPercent = this.currentExp / expNeeded; //현재 경험치의 비율 계산
 
-    // 메뉴 UI를 생성하고 표시
-    this.menuBackground = this.add.graphics();
-    this.menuBackground.fillStyle(0x000000, 0.7); // 배경색 및 투명도 설정
-    this.menuBackground.fillRect(200, 150, 400, 300); // 메뉴 배경을 그림
+    console.log('currentExp:', currentExp, 'expNeeded:', expNeeded, 'expPercent:', expPercent);
 
-    // 상점 버튼 추가
-    this.shopButton = this.add.text(300, 200, '상점', { fontSize: '24px', fill: '#ffffff' })
-        .setInteractive()
-        .on('pointerdown', () => {
-            // 상점으로 이동하는 로직 구현
-            this.goToShop();
-        });
+    this.expBar.clear();
+    //경험치 바의 배경 그리기
+    this.expBar.fillStyle(0x444444,1); //경험치바 배경
+    this.expBar.fillRect(0,0,800, 10);  //위치와 크기설정
 
-    // 업그레이드 버튼 추가
-    this.upgradeButton = this.add.text(300, 250, '업그레이드', { fontSize: '24px', fill: '#ffffff' })
-        .setInteractive()
-        .on('pointerdown', () => {
-            // 업그레이드 UI를 표시하는 로직 구현
-            this.showUpgradeUI();
-        });
+    //현재 경험치에 따른 바 그리기
+    this.expBar.fillStyle(0xC0C0C0,1); // 경험치 색상
+    this.expBar.fillRect(0, 0, 800 * expPercent, 10);
 
-    // 저장하기 버튼 추가
-    this.saveButton = this.add.text(300, 300, '저장하기', { fontSize: '24px', fill: '#ffffff' })
-        .setInteractive()
-        .on('pointerdown', () => {
-            // 저장하기 기능을 수행하는 로직 구현
-            this.saveGame();
-        });
-
-    // 불러오기 버튼 추가
-    this.loadButton = this.add.text(300, 350, '불러오기', { fontSize: '24px', fill: '#ffffff' })
-        .setInteractive()
-        .on('pointerdown', () => {
-            // 불러오기 기능을 수행하는 로직 구현
-            this.loadGame();
-        });
-
-    // 끝내기 버튼 추가
-    this.quitButton = this.add.text(300, 400, '끝내기', { fontSize: '24px', fill: '#ffffff' })
-        .setInteractive()
-        .on('pointerdown', () => {
-            // 게임 종료 로직 구현
-            this.quitGame();
-        });
-
-        this.menuOpen = true;
-}
-
-// 상점으로 이동하는 함수
-goToShop() {
-    // 상점으로 이동하는 로직을 작성
-}
-
-// 업그레이드 UI를 표시하는 함수
-showUpgradeUI() {
-    // 업그레이드 UI를 표시하는 로직을 작성
-}
-
-// 게임 저장하기 함수
-saveGame() {
-    // 게임 저장하기 로직을 작성
-}
-
-// 게임 불러오기 함수
-loadGame() {
-    // 게임 불러오기 로직을 작성
-}
-
-// 게임 종료 함수
-quitGame() {
-    // 게임 종료 로직을 작성
-}
-
-closeMenu() {
-    // 메뉴를 닫기 위한 로직 구현
-    // 메뉴 창을 숨기는 코드
-    this.menuOpen = false;
+    
 }
 
 
@@ -321,6 +336,50 @@ updateGold(gold) {
 
 
 
+
+
+fireEnergyBolt(){
+    if(this.enemies.getChildren().length === 0){
+        return;
+    }
+
+    // 가장 가까운 적을 찾음
+    let closestEnemy = this.enemies.getChildren().reduce((closest, enemy) => {
+        let currentDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+        if (currentDistance < closest.distance) {
+            return { distance: currentDistance, enemy: enemy };
+        }
+        return closest;
+    }, { distance: Infinity, enemy: null }).enemy;
+
+    if (!closestEnemy) {
+        // 가장 가까운 적이 없으면 아무것도 하지 않음
+        return;
+    }
+
+    
+    //에너지 볼트 속도 및 방향 설정
+    let energyBolt = this.energyBolts.create(this.player.x, this.player.y, 'vault');
+    energyBolt.setScale(0.1); //에너지 볼트 크기 조절
+    energyBolt.damage = 50;// 에너지 볼트 데미지 
+    
+    this.physics.moveToObject(energyBolt, closestEnemy, 500); //에너지볼트 속도 300
+
+    //에너지볼트가 적에게 닿았을 때의 처리를 위한 충돌 설정
+    this.physics.add.collider(energyBolt, this.enemies,(bolt,enemy)=>{
+        bolt.destroy(); //에너지 볼트 제거
+        enemy.health -= bolt.damage; // 적의 체력 감소
+        if(enemy.health <= 0){
+            enemy.destroy(); //적 제거
+        }
+    })
+
+    //에너지 볼트의 회전 각도 설정
+    let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, closestEnemy.x, closestEnemy.y);
+    energyBolt.rotation = angle;
+}
+
+
 //hp바 그리기
 updateHpBar() {
     this.hpBar.clear();
@@ -333,6 +392,7 @@ updateHpBar() {
 
 //자동 공격 실행 로직
 autoAttack(){
+    if(this.player){
     console.log("기본공격 무한반복");
     this.isAttacking = true;
     this.player.anims.play('playerAttack', true); //공격 애니메이션 재생
@@ -343,9 +403,11 @@ autoAttack(){
     this.player.once('animationcomplete', (animation)=>{
         if(animation.key === 'playerAttack'){
             this.isAttacking = false;
+            console.log("공격 애니메이션 완료"); // 콘솔 로그 추가
                 
         }
     });
+}
 }
 
 checkAttackHit(){
@@ -414,6 +476,10 @@ createEnemy() {
     enemy.on('destroy', ()=>{
         this.createGold(enemy.x,enemy.y);
         this.updateScore(10); //적하나 죽을때마다 10점 증가
+
+         // 적 하나 죽을 때마다 경험치 10 증가
+        this.currentExp += 10;
+        this.updateExpBar(this.currentExp); // 업데이트된 경험치로 경험치 바 업데이트
         
     });
 
@@ -630,7 +696,7 @@ var config={
         height: 600,
         backgroundColor: '#5DACD8'
     },
-    scene:[MyScene],
+    scene:[GameScene],
     
     //여기에 physics 설정을 추가합니다.
     physics: {
