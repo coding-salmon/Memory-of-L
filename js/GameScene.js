@@ -6,7 +6,7 @@ class GameScene extends Phaser.Scene{
         this.player = null; // player 전역 변수로 선언
         this.playerHp = 100; // 플레이어의 초기 HP
         this.maxHp = 100; // 플레이어의 최대 HP
-        this.playerDamage = 100; //플레[이어가 적에게 입히는 데미지의 기본값입니다.
+        this.playerDamage = 100; //플레이어가 적에게 입히는 데미지의 기본값입니다.
         this.score = 0; //점수
         this.gold  = 0; // 골드
         this.goldGroup = null; // 골드 그룹
@@ -138,20 +138,12 @@ create(){
     console.log("게임 초기화 시작")
 
 
-
+    // UIScene을 실행합니다.
     this.scene.launch('UIScene');
 
-    //메뉴 버튼 클릭 이벤트 핸들러 설정
-    this.menuButton = this.add.text(10,9, '[M o L]', {
-        fontSize:'20px',
-        fill: '#fb2b2b',
-        fontStyle:'bold'
-    })
-        .setInteractive()
-        .setDepth(3)
-        .on('pointerdown', ()=>{
-            this.scene.get('UIScene').toggleMenu();
-        });
+    //UIScene과의 통신을 위해 이벤트를 설정합니다.
+    this.events.on('toggleMenu', this.toggleMenu, this);
+    
 
 
     //경험치 바의 생성
@@ -297,6 +289,13 @@ create(){
     console.log(this.goldText); // 골드 텍스트 객체 정보 출력
 
     
+}
+
+toggleMenu(){
+    console.log("메뉴를 토글합니다.");
+
+    //UIscene에 메뉴 토글 이벤트를 보냅니다.
+    this.scene.get('UIScene').events.emit('toggleMenu');
 }
 
 //경험치 갱신 메서드
@@ -696,7 +695,7 @@ var config={
         height: 600,
         backgroundColor: '#5DACD8'
     },
-    scene:[GameScene],
+    scene:[GameScene,UIScene],
     
     //여기에 physics 설정을 추가합니다.
     physics: {
