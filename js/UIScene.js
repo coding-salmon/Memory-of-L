@@ -21,7 +21,7 @@ class UIScene extends Phaser.Scene{
 
     createMenuButton(){
         //메뉴 버튼 클릭 이벤트 핸들러 설정
-    this.menuButton = this.add.text(10,9, '[M o L]', {
+    this.menuButton = this.add.text(10,0, '[M o L]', {
         fontSize:'20px',
         fill: '#fb2b2b',
         fontStyle:'bold'
@@ -55,15 +55,28 @@ toggleMenu() {
         let menuBackground = this.add.graphics().fillStyle(0x000000, 0.7)
                                                 .fillRect(200,150,400,300)
                                                 .setDepth(4);
+
+        //X버튼 추가
+        let closeButton = this.add.text(570,150,'\u00D7',{
+            fontSize:'30px',
+            fill: '#fFFFFFFF',
+            fontStyle:'bold'
+        })
+        .setInteractive()
+        .setDepth(5)
+        .on('pointerdown', ()=>{
+            this.toggleMenu();
+        })                                        
         
         //메뉴 그룹화
         this.menuGroup = this.add.group([
         menuBackground,
         this.createButton(300, 200, '상점', this.goToShop),
-        this.createButton(300, 250, '스텟&스킬', this.stateSkill),
+        this.createButton(300, 250, '스텟&스킬', this.statAndSkill),
         this.createButton(300, 300, '저장하기', this.saveGame),
         this.createButton(300, 350, '불러오기', this.loadGame),
-        this.createButton(300, 400, '끝내기', this.quitGame)
+        this.createButton(300, 400, '끝내기', this.quitGame),
+        closeButton
         ]);
 
         console.log("메뉴 생성 완료")
@@ -96,7 +109,7 @@ toggleMenu() {
     }
     
     // 스텟&스킬 UI를 표시하는 함수
-    stateSkill() {
+    statAndSkill() {
         // 스텟&스킬 UI를 표시하는 로직을 작성
         console.log("스텟스킬 UI 표시");
     }
@@ -115,9 +128,16 @@ toggleMenu() {
     
     // 게임 종료 함수
     quitGame() {
+
+        const isConfirmed = confirm("정말로 게임을 종료하시겠습니까?");
         // 게임 종료 로직을 작성
+
+        // 사용자가 '확인'을 선택한 경우, 게임 종료 로직을 수행합니다.
+    if (isConfirmed) {
+        this.game.destroy(true); // Phaser 게임 인스턴스 종료
         this.game.destroy(true); // Phaser 게임 인스턴스 종료
     }
+}
     
     
 

@@ -129,6 +129,23 @@ preload(){
     //에너지볼트 이미지 생성
     this.load.image('vault', '/node_modules/phaser/assets/magic/EnergyVault.png')
 
+    //썬더 이미지 생성
+    this.load.image('thunder0', '/node_modules/phaser/assets/thunder/thunder0.png');
+    this.load.image('thunder1', '/node_modules/phaser/assets/thunder/thunder1.png');
+    this.load.image('thunder2', '/node_modules/phaser/assets/thunder/thunder2.png');
+
+    //dis 이미지 생성
+    this.load.image('dis0', '/node_modules/phaser/assets/dis/dis0.png');
+    this.load.image('dis1', '/node_modules/phaser/assets/dis/dis1.png');
+    this.load.image('dis2', '/node_modules/phaser/assets/dis/dis2.png');
+    this.load.image('dis3', '/node_modules/phaser/assets/dis/dis3.png');
+    this.load.image('dis4', '/node_modules/phaser/assets/dis/dis4.png');
+    this.load.image('dis5', '/node_modules/phaser/assets/dis/dis5.png');
+    this.load.image('dis6', '/node_modules/phaser/assets/dis/dis6.png');
+    this.load.image('dis7', '/node_modules/phaser/assets/dis/dis7.png');
+
+    //단검 임지 생성
+    this.load.image('dagger', '/node_modules/phaser/assets/dagger/dagger.png');
 
 
 }
@@ -154,17 +171,22 @@ create(){
     
     this.energyBolts = this.physics.add.group();
 
-
+    //레벨 텍스트
+    this.playerLevelText = this.add.text(400, 0, 'Level: 1',{
+        fontSize: '20px',
+        fill: '#ffffff',
+        fontStyle:'bold'
+    }).setOrigin(0.5,0).setDepth(3);
 
     //스코어 생성
-    this.scoreText = this.add.text(330, 9, 'Score: 0',{
+    this.scoreText = this.add.text(700, 0, 'Score: 0',{
         fontSize: '20px',
         fill: '#ffffff',
         fontStyle: 'bold' // 폰트 두께를 bold로 설정
     }).setOrigin(0.5,0).setDepth(3);
 
     // 골드 텍스트 생성 및 스타일 설정
-    this.goldText = this.add.text(470, 9, 'Gold: 0', {
+    this.goldText = this.add.text(700, 20, 'Gold: 0', {
         fontSize: '20px',
         fill: '#ffd700', // 골드 색상
         fontStyle: 'bold' // 폰트 두께를 bold로 설정
@@ -275,13 +297,57 @@ create(){
         loop: true // 무한 반복
                 
     });
-
+    //에너지 볼트 자동 공격
     this.time.addEvent({
         delay: 2000, //2초마다
         callback: this.fireEnergyBolt,
         callbackScope:this,
         loop: true // 무한반복
     })
+    //썬더 애미메이션 생성
+    this.anims.create({
+        key: 'thunder',
+        frames: [
+            {key: 'thunder0'},
+            {key: 'thunder1'},
+            {key: 'thunder2'}
+            ],
+            frameRate:10,
+            repeat: 0
+    })
+    //썬더 공격 로직
+    this.time.addEvent({
+        delay: 2000, // 2초마다
+        callback: this.castThunder,
+        callbackScope: this,
+        loop: true
+    });
+
+    //디스 애니메이션
+    this.anims.create({
+        key: 'dis',
+        frames: [
+            {key: 'dis0'},
+            {key: 'dis1'},
+            {key: 'dis2'},
+            {key: 'dis3'},
+            {key: 'dis4'},
+            {key: 'dis5'},
+            {key: 'dis6'},
+            {key: 'dis7'},
+        ],
+            frameRate:10,
+            repeat: 0
+
+        
+    })
+     //디스 공격 로직
+     this.time.addEvent({
+        delay: 5000, // 2초마다
+        callback: this.castDis,
+        callbackScope: this,
+        loop: true
+    });
 
     //키보드 입력 활성화
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -294,7 +360,7 @@ create(){
 toggleMenu(){
     console.log("메뉴를 토글합니다.");
 
-    //UIscene에 메뉴 토글 이벤트를 보냅니다.
+    //UIScene에 메뉴 토글 이벤트를 보냅니다.
     this.scene.get('UIScene').events.emit('toggleMenu');
 }
 
@@ -303,20 +369,38 @@ updateExpBar(currentExp){
     console.log("Player Level:", this.playerLevel, "Current Exp:", currentExp);
 
     this.currentExp = currentExp; // 현재 경험치를 업데이트
-    const expNeeded = this.expNeededPerLevel[this.playerLevel -1]; //현재 레벨에 필요한 총경험치
+    let expNeeded = this.expNeededPerLevel[this.playerLevel -1]; //현재 레벨에 필요한 총경험치
     console.log("Exp Needed:", expNeeded);
-    const expPercent = this.currentExp / expNeeded; //현재 경험치의 비율 계산
+    //레벨업 경험치가 충분하지 반복확인
+    while(this.currentExp >= expNeeded){
+        this.currentExp -= expNeeded; //초가분을 계산
+        this.playerLevel++; //레벨업
 
+        //새 레벨에 필요한 경험치 업데이트
+        
+        if(this.playerLevel -1 < this.expNeededPerLevel.length){
+            expNeeded = this.expNeededPerLevel[this.playerLevel-1];
+        }
+        console.log("레벨업! 레벨:",this.playerLevel);
+        // 레벨 텍스트 업데이트
+        this.playerLevelText.setText(`Level: ${this.playerLevel}`);
+
+
+    }
+    let expPercent = this.currentExp / expNeeded; //현재 경험치의 비율 계산
     console.log('currentExp:', currentExp, 'expNeeded:', expNeeded, 'expPercent:', expPercent);
+    
+
+    console.log('Exp Percent', expPercent);
 
     this.expBar.clear();
     //경험치 바의 배경 그리기
     this.expBar.fillStyle(0x444444,1); //경험치바 배경
-    this.expBar.fillRect(0,0,800, 10);  //위치와 크기설정
+    this.expBar.fillRect(0,0,800, 20);  //위치와 크기설정
 
     //현재 경험치에 따른 바 그리기
     this.expBar.fillStyle(0xC0C0C0,1); // 경험치 색상
-    this.expBar.fillRect(0, 0, 800 * expPercent, 10);
+    this.expBar.fillRect(0, 0, 800 * expPercent, 20);
 
     
 }
@@ -377,6 +461,64 @@ fireEnergyBolt(){
     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, closestEnemy.x, closestEnemy.y);
     energyBolt.rotation = angle;
 }
+
+//썬더로직
+castThunder(){
+    //사용자 주위에서 랜덤 위치 생성
+    let randomX = Phaser.Math.Between(this.player.x -200, this.player.x +200);
+    let randomY = Phaser.Math.Between(this.player.y -200, this.player.y +200);
+
+    let thunder = this.add.sprite(randomX, randomY, 'thunder').play('thunder');
+    thunder.setScale(0.5);
+    thunder.damage = 100;
+
+    //데미지 로직
+    thunder.on('animationcomplete', ()=> {
+        thunder.destroy();
+
+        //범위 추적 및 데미지 적용
+        this.enemies.getChildren().forEach(enemy => {
+            if(Phaser.Math.Distance.Between(thunder.x, thunder.y, enemy.x , enemy.y) <= 50) {
+                //적에게 데미지 적용
+                enemy.health -= thunder.damage; // 적의 체력 감소
+                if(enemy.health <= 0){
+                    enemy.destroy(); //적 제거
+                }
+            }
+        })
+    })
+
+}
+
+castDis(){
+    //사용자 주위에서 랜덤 위치 생성
+    let disX =this.player.x
+    let disY =this.player.y
+
+    let dis = this.add.sprite(disX, disY, 'dis').play('dis');
+    dis.setScale(0.5);
+    dis.damage = 100;
+
+    //데미지 로직
+    dis.on('animationcomplete', ()=> {
+        dis.destroy();
+
+        //범위 추적 및 데미지 적용
+        this.enemies.getChildren().forEach(enemy => {
+            if(Phaser.Math.Distance.Between(dis.x, dis.y, enemy.x , enemy.y) <= 300) {
+                //적에게 데미지 적용
+                enemy.health -= dis.damage; // 적의 체력 감소
+                if(enemy.health <= 0){
+                    enemy.destroy(); //적 제거
+                }
+            }
+        })
+    })
+
+}
+
+
+
 
 
 //hp바 그리기
