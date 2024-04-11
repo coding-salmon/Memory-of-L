@@ -90,15 +90,6 @@ preload(){
     this.load.image('frame7','/node_modules/phaser/assets/thiefFront_walk07.png');
     this.load.image('frame8','/node_modules/phaser/assets/thiefFront_walk08.png');
 
-    //위로 이동하는 애니메이션 추가하기
-    this.load.image('frame9','/node_modules/phaser/assets/thiefBack_walk01.png');
-    this.load.image('frame10','/node_modules/phaser/assets/thiefBack_walk02.png');
-    this.load.image('frame11','/node_modules/phaser/assets/thiefBack_walk03.png');
-    this.load.image('frame12','/node_modules/phaser/assets/thiefBack_walk04.png');
-    this.load.image('frame13','/node_modules/phaser/assets/thiefBack_walk05.png');
-    this.load.image('frame14','/node_modules/phaser/assets/thiefBack_walk06.png');
-    this.load.image('frame15','/node_modules/phaser/assets/thiefBack_walk07.png');
-    this.load.image('frame16','/node_modules/phaser/assets/thiefBack_walk08.png');
 
     //플레이어 공격 애니메이션 추가하기
     this.load.image('frame17', '/node_modules/phaser/assets/playerAttack/thief_atk01.png');
@@ -192,7 +183,7 @@ create(){
         fontStyle: 'bold' // 폰트 두께를 bold로 설정
     }).setOrigin(0.5, 0).setDepth(3);
 
-    // 골드를 담을 그룹을 생성합니다.
+    // 경험치 + 골드를 담을 그룹을 생성합니다.
     this.goldGroup = this.physics.add.group();
 
 
@@ -213,16 +204,8 @@ create(){
     this.hpBar = this.add.graphics();
     this.updateHpBar();
 
-    //Tween을 사용하여 캐릭터가 '숨쉬는'효과를 위해 약간 확대 /축소
-    this.tweens.add({
-        targets:this.player,
-        scale: {start:0.98,to:1.02}, //시작 및 종료 스케일 값
-        duration: 500, //한번 숨쉬는게 걸리는 시간
-        yoyo: true, //애니메이션을 역방향으로도 실행
-        repeat: -1 //무한반복 
-    })
-
     
+
 
     
 
@@ -242,25 +225,7 @@ create(){
         ],
         
         frameRate: 10,
-        repeat: -1
-    });
-
-    //뒤로 이동하는 애니메이션 추가
-    this.anims.create({
-        key:'walkBack',
-        frames:[
-            {key: 'frame9'},
-            {key: 'frame10'},
-            {key: 'frame11'},
-            {key: 'frame12'},
-            {key: 'frame13'},
-            {key: 'frame14'},
-            {key: 'frame15'},
-            {key: 'frame16'}
-        ],
-        frameRate: 10,
-        repeat: -1
-
+        repeat: 0
     });
 
     //공격 애니메이션 생성
@@ -276,7 +241,7 @@ create(){
 
         ],
         frameRate:10,
-        repeat: -1
+        repeat: 0
     })
 
     
@@ -342,7 +307,7 @@ create(){
         
     })
      //디스 공격 로직
-     this.time.addEvent({
+    this.time.addEvent({
         delay: 5000, // 2초마다
         callback: this.castDis,
         callbackScope: this,
@@ -355,6 +320,7 @@ create(){
     console.log(this.goldText); // 골드 텍스트 객체 정보 출력
 
     
+
 }
 
 toggleMenu(){
@@ -618,9 +584,6 @@ createEnemy() {
         this.createGold(enemy.x,enemy.y);
         this.updateScore(10); //적하나 죽을때마다 10점 증가
 
-         // 적 하나 죽을 때마다 경험치 10 증가
-        this.currentExp += 10;
-        this.updateExpBar(this.currentExp); // 업데이트된 경험치로 경험치 바 업데이트
         
     });
 
@@ -659,6 +622,10 @@ checkGoldCollision() {
 collectGold(player, gold) {
    // 골드 수를 증가시키고, 골드 텍스트를 업데이트합니다.
     this.updateGold(1); // 골드를 획득할 때마다 1을 증가시킴
+     // 적 하나 죽을 때마다 경험치 10 증가
+    this.currentExp += 10;
+    this.updateExpBar(this.currentExp); // 업데이트된 경험치로 경험치 바 업데이트
+    
     
     // 골드가 흔들리고 사라지는 효과를 주기 위해 Tween 애니메이션을 추가합니다.
     this.tweens.add({
@@ -700,130 +667,136 @@ playerHitEnemy(player, enemy){
 
 
 
-
-update(){
-
-    //키 입력에 따른 애니메이션과 배경 이동 처리를 위한 플래그
+update() {
+    // 움직임 상태와 마지막 방향 초기화
     let isMoving = false;
+    let lastDirection = this.lastDirection || 'left';
     
-   // 키 입력에 따라 배경 이동 처리
+    // 방향키 입력에 따른 플레이어와 환경의 이동 처리
+    if (this.cursors.left.isDown || this.cursors.right.isDown || this.cursors.up.isDown || this.cursors.down.isDown) {
+        isMoving = true; // 움직임 상태 활성화
+        this.handleDirectionalMovement(); // 방향키에 따른 움직임 처리 함수 호출
+    }
+    
+    // 움직임이 없을 경우 플레이어의 애니메이션과 방향 처리
+    if (!isMoving) {
+        this.handlePlayerIdleState(); // 플레이어의 대기 상태 처리 함수 호출
+    }
+
+    // 적들이 플레이어를 향해 이동하도록 처리
+    this.enemiesChasePlayer();
+
+    // 플레이어와 적의 충돌 처리
+    this.handlePlayerEnemyCollision();
+
+    
+}
+
+// 방향키 입력에 따른 움직임 처리
+handleDirectionalMovement() {
+    let xAdjustment = 0;
+    let yAdjustment = 0;
+    let scale = 1;
+
+
+    // 좌우 이동 처리
     if (this.cursors.left.isDown) {
-
-        this.enemies.getChildren().forEach(function(enemy) {
-            enemy.x += 2; // 적을 오른쪽으로 이동
-            
-        });
-
-        this.goldGroup.getChildren().forEach(function(gold){
-            gold.x += 2; //골드를 오른쪽으로 이동
-        });
-
-        this.background.tilePositionX -= 2;
-        this.player.anims.play('walkLeft',true);
-        this.player.setScale(1); //왼쪽으로 이동할때는 원래 스케일
-        isMoving = true;
-    } 
-
-    if (this.cursors.right.isDown) {
-
-        this.enemies.getChildren().forEach(function(enemy) {
-            enemy.x -= 2; // 적을 왼쪽으로 이동
-            
-        });
-
-        this.goldGroup.getChildren().forEach(function(gold){
-            gold.x -= 2; //골드를 오른쪽으로 이동
-        });
-
-        this.background.tilePositionX += 2;
-        this.player.anims.play('walkLeft',true);
-        this.player.setScale(-1, 1); // X 축 기준으로 이미지 반전
-        isMoving = true;
-    }
-    if (this.cursors.up.isDown) {
-
-        this.enemies.getChildren().forEach(function(enemy) {
-            enemy.y += 2; // 적을 아래로 이동
-            
-        });
-
-        this.goldGroup.getChildren().forEach(function(gold){
-            gold.y += 2; //골드를 오른쪽으로 이동
-        });
-
-        this.background.tilePositionY -= 2;
-        this.player.anims.play('walkBack', true);
-        this.player.setScale(1); // 위로 이동할 때는 원래 스케일
-        isMoving = true;
-    }
-    // 오른쪽과 위쪽 키가 동시에 눌렸을 때만 반전시킵니다.
-    if (this.cursors.up.isDown && this.cursors.right.isDown) {
-        this.player.anims.play('walkBack', true);
-        this.player.setScale(-1, 1); // X 축 기준으로 이미지 반전
-        isMoving = true;
+        this.lastDirection = 'left';
+        xAdjustment = 2; // 왼쪽 이동
+        this.player.direction = 1; // 왼쪽 방향
+        scale=1;
+    } else if (this.cursors.right.isDown) {
+        this.lastDirection = 'right';
+        xAdjustment = -2; // 오른쪽 이동
+        this.player.direction = -1; // 오른쪽 방향, 이미지 반전
+        scale=-1;
     }
 
-    if (this.cursors.up.isDown && this.cursors.left.isDown){
-        this.player.anims.play('walkBack', true);
-        this.player.setScale(1); // 위쪽 이동만 있는 경우 원래 스케일
-        isMoving = true;
-    }
-    if (this.cursors.down.isDown) {
-
-        this.enemies.getChildren().forEach(function(enemy) {
-            enemy.y -= 2; // 적을 위로 이동
-           
-        });
-        this.goldGroup.getChildren().forEach(function(gold){
-            gold.y -= 2; //골드를 오른쪽으로 이동
-        });
+    // 위나 아래로 이동할 때는 마지막 좌우 이동 방향에 따라 이미지 반전 상태 결정
+    if (this.cursors.up.isDown || this.cursors.down.isDown) {
+        yAdjustment = this.cursors.up.isDown ? 2 : -2; // 위 또는 아래 이동
         
 
-        this.background.tilePositionY += 2;
-        this.player.anims.play('walkLeft',true);
-        isMoving = true;
-    } 
-    if(!isMoving && !this.isAttacking){
-        this.player.anims.stop();
-        this.player.setTexture('player'); // 기본 프레임으로 설정, 캐릭터의 기본 상태 이미지가 필요함 //키 입력이 없을 때는 애니메이션 정지
+        // 마지막으로 기록된 좌우 방향에 따라 scale 값을 결정
+        if (this.lastDirection === 'left') {
+            scale = 1; // 왼쪽 이동이 마지막이었으면 이미지 반전 없음
+        } else if (this.lastDirection === 'right') {
+            scale = -1; // 오른쪽 이동이 마지막이었으면 이미지 반전
+        }
     }
 
-    //적들의 플레이어를 향해 이동하도록 처리
-    this.enemies.getChildren().forEach((enemy) =>{
+    this.moveObjects(xAdjustment, yAdjustment); // 객체들 이동 처리
+    this.player.anims.play('walkLeft', true); // 플레이어 애니메이션 재생
+    this.player.setScale(scale, 1); // 플레이어 스케일 조정
+}
 
-        var angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x , this.player.y);
-        
-        
-        // 적의 속도 벡터를 설정하여 플레이어를 향해 이동시킴
-        enemy.body.velocity.x = Math.cos(angle) * 60; //60은 초당 프레임 수
-        enemy.body.velocity.y = Math.sin(angle) * 60;
+// 객체 이동 처리 함수
+moveObjects(xAdjustment, yAdjustment) {
+    // 적과 금화 객체 이동
+    this.enemies.getChildren().forEach(function(enemy) {
+        enemy.x += xAdjustment;
+        enemy.y += yAdjustment;
     });
 
-    //플레이어와 적의 충돌 감지 로직 추가
-    this.physics.overlap(this.player, this.enemies, (player,enemy) => {
-        if(!enemy.isHit){//적이 피격되지 않았다면
-        console.log("플레이어가 적에게 피격됨"); //콘솔 로그로 충돌 확인
-        enemy.isHit = true; // 피격 상태로 변경
-        this.playerHp -=1 ; //플레이어 hp 감소     
-        console.log(`플레이어 HP: ${this.playerHp}`); //현재 HP로깅
-        this.updateHpBar(); //hp바 업데이트
+    this.goldGroup.getChildren().forEach(function(gold) {
+        gold.x += xAdjustment;
+        gold.y += yAdjustment;
+    });
 
-        //피격 후 잠시 무적 시간 설정
-        this.time.addEvent({
-            delay:500,// 0.5초 동안
-            callback: ()=> {
-                enemy.isHit = false;
-            }
-        });
+    // 배경 이동 처리
+    this.background.tilePositionX -= xAdjustment;
+    this.background.tilePositionY -= yAdjustment;
+}
+
+// 플레이어 대기 상태 처리 함수
+handlePlayerIdleState() {
+    this.player.anims.stop(); // 애니메이션 정지
     
+
+     // 마지막 방향이 'right'일 때 기본 이미지를 반전시킴
+    if (this.lastDirection === 'right') {
+        this.player.setTexture('player', 0); // 오른쪽을 바라보는 기본 이미지로 설정
+    } else { // 'left' 또는 기타 방향일 때
+        this.player.setTexture('player', 0); // 왼쪽을 바라보는 기본 이미지로 설정
     }
-    }, null, this)
-    
+}
 
-    
+// 적이 플레이어를 향해 이동하는 로직
+enemiesChasePlayer() {
+    this.enemies.getChildren().forEach((enemy) => {
+        var angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+        
+        // 적의 속도 벡터 설정하여 플레이어를 향해 이동
+        enemy.body.velocity.x = Math.cos(angle) * 60; // X 방향 속도
+        enemy.body.velocity.y = Math.sin(angle) * 60; // Y 방향 속도
+    });
+}
 
+// 플레이어와 적의 충돌 처리 로직
+handlePlayerEnemyCollision() {
+    this.physics.overlap(this.player, this.enemies, (player, enemy) => {
+        if (!enemy.isHit) { // 적이 피격되지 않았다면
+            console.log("플레이어가 적에게 피격됨");
+            enemy.isHit = true; // 피격 상태로 변경
+            this.playerHp -= 10; // 플레이어 HP 감소
+            console.log(`플레이어 HP: ${this.playerHp}`);
+            this.updateHpBar(); // HP 바 업데이트
+
+            // 피격 후 무적 시간 설정
+            this.time.addEvent({
+                delay: 500, // 0.5초
+                callback: () => {
+                    enemy.isHit = false; // 무적 시간 종료
+                }
+            });
+        }
+    }, null, this);
 }
 }
+
+
+
+
 
 
 //게임의 초기 설정을 위한 config 객체입니다.
