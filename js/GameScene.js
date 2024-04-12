@@ -114,6 +114,20 @@ preload(){
     //적 유닛 죽을 때
     this.load.image('enemy5', '/node_modules/phaser/assets/Enemy0/Enemy5.png');
 
+    //적w 유닛 생성
+    this.load.image('enemyW0', '/node_modules/phaser/assets/Enemy1/w0.png')
+    this.load.image('enemyW1', '/node_modules/phaser/assets/Enemy1/w1.png')
+    this.load.image('enemyW2', '/node_modules/phaser/assets/Enemy1/w2.png')
+    this.load.image('enemyW3', '/node_modules/phaser/assets/Enemy1/w3.png')
+    this.load.image('enemyW4', '/node_modules/phaser/assets/Enemy1/w4.png')
+    this.load.image('enemyW5', '/node_modules/phaser/assets/Enemy1/w5.png')
+    //적w 피격 이미지
+    this.load.image('enemyW6', '/node_modules/phaser/assets/Enemy1/w6.png')
+    /
+    this.load.image('enemyW7', '/node_modules/phaser/assets/Enemy1/w7.png')
+
+
+
     //골드 이미지 생성
     this.load.image('gold','/node_modules/phaser/assets/gold/gold1.png')
 
@@ -243,6 +257,35 @@ create(){
         frameRate:10,
         repeat: 0
     })
+
+    //적 유닛의 이동 애니메이션 생성
+    this.anims.create({
+        key:'enemyMove',
+        frames:[
+            {key: 'enemy0'},
+            {key: 'enemy1'},
+            {key: 'enemy2'},
+            {key: 'enemy3'},
+        ],
+        frameRate:10,
+        repeat:0
+    });
+
+    // 적 유닛의 피격 애니메이션
+this.anims.create({
+    key: 'enemyHit',
+    frames: [{ key: 'enemy4' }],
+    frameRate: 10,
+    repeat:0
+});
+
+// 적 유닛의 죽음 애니메이션
+this.anims.create({
+    key: 'enemyDie',
+    frames: [{ key: 'enemy5' }],
+    frameRate: 10,
+    repeat: 0
+});
 
     
 
@@ -563,7 +606,7 @@ createEnemy() {
     let y = Phaser.Math.Between(0,600);
     
     // this.add.sprite 대신 this.physics.add.sprite를 사용하여 적을 생성
-    let enemy = this.physics.add.sprite(x, y, 'enemy0');
+    let enemy = this.physics.add.sprite(x, y, 'enemy0').play('enemyMove');
 
     //크기 설정
     enemy.setScale(3);
@@ -581,8 +624,9 @@ createEnemy() {
     this.physics.add.overlap(this.player, enemy, this.playerHitEnemy, null, this);
 
     enemy.on('destroy', ()=>{
+        enemy.play('enemyDie');
         this.createGold(enemy.x,enemy.y);
-        this.updateScore(10); //적하나 죽을때마다 10점 증가
+        this.updateScore(1); //적하나 죽을때마다 1점 증가
 
         
     });
@@ -647,19 +691,30 @@ playerHitEnemy(player, enemy){
 
     if(!enemy.isHit){//적이 피격되지 않았다면
         enemy.isHit = true; //피격 상태로 변경
-        
-    //적의 에너지 감소
-    enemy.health -= this.playerDamage; //체력 감소 
-    if(enemy.health <=0){
-        //적이 사망한 경우에는 특별한 처리를 해줄 수 있습니다.
-        //예 적을 제거하고 점수를 증가시키는 등의 작업을 수행합니다.
+        //적의 에너지 감소
+        enemy.health -= this.playerDamage; //체력 감소 
 
-        enemy.destroy();
+        if(enemy.health <=0){
+            // 체력이 0 이하이면 사망 애니메이션 재생 후 제거
+            enemy.play('enemyDie');
+            enemy.once('animationcomplete', () => {
+                enemy.destroy();
+                this.updateScore(1);  // 점수 증가
+            });
     }else{
+         // 피격 애니메이션 재생
+        enemy.play('enemyHit');
+        enemy.once('animationcomplete', () => {
+             // 피격 애니메이션 완료 후 이동 애니메이션으로 복귀
+            enemy.play('enemyMove');
+        });
         //피격 후 잠시 무적 시간 설정
         this.time.addEvent({
         delay: 500, //0.5초 동안
-        callback: () => {enemy.isHit = false;}
+        callback: () => {
+            enemy.isHit = false;
+            enemy.play('enemyMove');
+        }
     });
     }
 }
@@ -825,4 +880,3 @@ var config={
 
 
 var game=new Phaser.Game(config);
-
