@@ -2,11 +2,17 @@
 class GameScene extends Phaser.Scene{
     constructor(){
         super({ key: 'GameScene'});
+        this.playerSkillPoints = 0; // 플레이어의 스킬 포인트
+        this.skillsLearned  = { // 배운 스킬 여부
+            fireEnergyBolt: false,
+            castThunder: false,
+            castDis: false
+            };
         this.enemies = null; // 전역 변수로 선언합니다.
         this.player = null; // player 전역 변수로 선언
         this.playerHp = 100; // 플레이어의 초기 HP
         this.maxHp = 100; // 플레이어의 최대 HP
-        this.playerDamage = 100; //플레이어가 적에게 입히는 데미지의 기본값입니다.
+        this.playerDamage = 5; //플레이어가 적에게 입히는 데미지의 기본값입니다.
         this.score = 0; //점수
         this.gold  = 0; // 골드
         this.goldGroup = null; // 골드 그룹
@@ -14,7 +20,7 @@ class GameScene extends Phaser.Scene{
         this.menuOpen = false; // 메뉴 창이 열려 있는지 여부를 나타내는 변수 추가
         this.playerLevel = 1; //초기 레벨은 1로 설정
         this.playerMaxLevel = 52; //최대 레벨
-        this.exp = null;
+        this.exp = 0;
         this.maxExp =null;
         this.expNeededPerLevel = [
             100,  // 레벨 1
@@ -123,16 +129,66 @@ preload(){
     this.load.image('enemyW5', '/node_modules/phaser/assets/Enemy1/w5.png')
     //적w 피격 이미지
     this.load.image('enemyW6', '/node_modules/phaser/assets/Enemy1/w6.png')
-    /
+    // 적w 유닛 죽을 때
     this.load.image('enemyW7', '/node_modules/phaser/assets/Enemy1/w7.png')
 
+
+    //적t 유닛생성
+    this.load.image('enemyT0', '/node_modules/phaser/assets/Enemy2/t0.png')
+    this.load.image('enemyT1', '/node_modules/phaser/assets/Enemy2/t1.png')
+
+    //적 t 피격이미지
+    this.load.image('enemyT2', '/node_modules/phaser/assets/Enemy2/t2.png')
+    //적 t 죽었을때 
+    this.load.image('enemyT3', '/node_modules/phaser/assets/Enemy2/t3.png')
+
+ 
+
+
+    //적 z 생성
+    this.load.image('enemyZ0', '/node_modules/phaser/assets/Enemy3/z0.png')
+    this.load.image('enemyZ1', '/node_modules/phaser/assets/Enemy3/z1.png')
+    this.load.image('enemyZ2', '/node_modules/phaser/assets/Enemy3/z2.png')
+    this.load.image('enemyZ3', '/node_modules/phaser/assets/Enemy3/z3.png')
+    this.load.image('enemyZ4', '/node_modules/phaser/assets/Enemy3/z4.png')
+    this.load.image('enemyZ5', '/node_modules/phaser/assets/Enemy3/z5.png')
+    //적 z 피격
+    this.load.image('enemyZ6', '/node_modules/phaser/assets/Enemy3/z6.png')
+
+    //적 z 죽었을때
+    this.load.image('enemyZ7', '/node_modules/phaser/assets/Enemy3/z7.png')
+
+
+
+
+
+
+    //적 o 생성
+    this.load.image('enemyO0','/node_modules/phaser/assets/Enemy4/o0.png')
+    this.load.image('enemyO1','/node_modules/phaser/assets/Enemy4/o1.png')
+    this.load.image('enemyO2','/node_modules/phaser/assets/Enemy4/o2.png')
+    this.load.image('enemyO3','/node_modules/phaser/assets/Enemy4/o3.png')
+    this.load.image('enemyO4','/node_modules/phaser/assets/Enemy4/o4.png')
+    this.load.image('enemyO5','/node_modules/phaser/assets/Enemy4/o5.png')
+    //적 o 피격
+    this.load.image('enemyO6','/node_modules/phaser/assets/Enemy4/o6.png')
+    //적 o 죽었을때
+    this.load.image('enemyO7','/node_modules/phaser/assets/Enemy4/o7.png')
+
+
+  
 
 
     //골드 이미지 생성
     this.load.image('gold','/node_modules/phaser/assets/gold/gold1.png')
 
-    //에너지볼트 이미지 생성
-    this.load.image('vault', '/node_modules/phaser/assets/magic/EnergyVault.png')
+    //파이어볼트 이미지 생성
+    this.load.image('vault0', '/node_modules/phaser/assets/fire/fire0.png')
+    this.load.image('vault1', '/node_modules/phaser/assets/fire/fire1.png')
+    this.load.image('vault2', '/node_modules/phaser/assets/fire/fire2.png')
+    this.load.image('vault3', '/node_modules/phaser/assets/fire/fire3.png')
+    this.load.image('vault4', '/node_modules/phaser/assets/fire/fire4.png')
+
 
     //썬더 이미지 생성
     this.load.image('thunder0', '/node_modules/phaser/assets/thunder/thunder0.png');
@@ -149,7 +205,7 @@ preload(){
     this.load.image('dis6', '/node_modules/phaser/assets/dis/dis6.png');
     this.load.image('dis7', '/node_modules/phaser/assets/dis/dis7.png');
 
-    //단검 임지 생성
+    //단검 이미지 생성
     this.load.image('dagger', '/node_modules/phaser/assets/dagger/dagger.png');
 
 
@@ -287,7 +343,106 @@ this.anims.create({
     repeat: 0
 });
 
-    
+this.anims.create({
+    key:'enemyWMove',
+    frames: [
+        {key: 'enemyW0'},
+        {key: 'enemyW1'},
+        {key: 'enemyW2'},
+        {key: 'enemyW3'},
+        {key: 'enemyW4'},
+        {key: 'enemyW5'}
+    ],
+    frameRate:10,
+    repeat: 0
+});
+
+this.anims.create({
+    key:'enemyWHit',
+    frames: [{ key: 'enemyW6'}],
+    frameRate:10
+});
+
+this.anims.create({
+    key: 'enemyWDie',
+    frames: [{key: 'enemyW7'}],
+    frameRate:10
+});
+
+
+this.anims.create({
+    key:'enemyZMove',
+    frames: [
+        {key: 'enemyZ0'},
+        {key: 'enemyZ1'},
+        {key: 'enemyZ2'},
+        {key: 'enemyZ3'},
+        {key: 'enemyZ4'},
+        {key: 'enemyZ5'}
+    ],
+    frameRate:10,
+    repeat: 0
+});
+
+this.anims.create({
+    key:'enemyZHit',
+    frames: [{ key: 'enemyZ6'}],
+    frameRate:10
+});
+
+this.anims.create({
+    key: 'enemyZDie',
+    frames: [{key: 'enemyZ7'}],
+    frameRate:10
+});
+
+this.anims.create({
+    key:'enemyOMove',
+    frames: [
+        {key: 'enemyO0'},
+        {key: 'enemyO1'},
+        {key: 'enemyO2'},
+        {key: 'enemyO3'},
+        {key: 'enemyO4'},
+        {key: 'enemyO5'}
+    ],
+    frameRate:10,
+    repeat: 0
+});
+
+this.anims.create({
+    key:'enemyOHit',
+    frames: [{ key: 'enemyO6'}],
+    frameRate:10
+});
+
+this.anims.create({
+    key: 'enemyODie',
+    frames: [{key: 'enemyO7'}],
+    frameRate:10
+});
+
+this.anims.create({
+    key:'enemyTMove',
+    frames: [
+        {key: 'enemyT0'},
+        {key: 'enemyT1'}
+        ],
+    frameRate:10,
+    repeat: 0
+});
+
+this.anims.create({
+    key:'enemyTHit',
+    frames: [{ key: 'enemyT2'}],
+    frameRate:10
+});
+
+this.anims.create({
+    key: 'enemyTDie',
+    frames: [{key: 'enemyT3'}],
+    frameRate:10
+});
 
     //적을 주기적으로 생성
     this.time.addEvent({
@@ -299,16 +454,34 @@ this.anims.create({
 
     //자동 공격 타이머 이벤트 설정
     this.time.addEvent({
-        delay:3000, //3초마다
+        delay:5000, //5초마다
         callback: this.autoAttack, // 자동공격!
         callbackScope: this, // this 컨텍스트를 현재 Scene으로 설정
         loop: true // 무한 반복
                 
     });
+
+    //에너지볼트 애니메이션 생성
+    this.anims.create({
+        key: 'vault',
+        frames: [
+            {key: 'vault0'},
+            {key: 'vault1'},
+            {key: 'vault2'},
+            {key: 'vault3'},
+            {key: 'vault4'}
+            ],
+            frameRate:10,
+            repeat: 0
+    })
     //에너지 볼트 자동 공격
     this.time.addEvent({
-        delay: 2000, //2초마다
-        callback: this.fireEnergyBolt,
+        delay: 5000, //5초마다
+        callback: () => {
+            if (this.skillsLearned.fireEnergyBolt) {
+                this.fireEnergyBolt();
+            }
+        },
         callbackScope:this,
         loop: true // 무한반복
     })
@@ -325,8 +498,12 @@ this.anims.create({
     })
     //썬더 공격 로직
     this.time.addEvent({
-        delay: 2000, // 2초마다
-        callback: this.castThunder,
+        delay: 5000, // 5초마다
+        callback: ()=>{
+            if (this.skillsLearned.thunder) {
+                this.castThunder();
+            }
+        },
         callbackScope: this,
         loop: true
     });
@@ -351,8 +528,12 @@ this.anims.create({
     })
      //디스 공격 로직
     this.time.addEvent({
-        delay: 5000, // 2초마다
-        callback: this.castDis,
+        delay: 7000, // 7초마다
+        callback: ()=>{
+            if(this.SkillsLeaned.dis){
+                this.castDis();
+            }
+        },
         callbackScope: this,
         loop: true
     });
@@ -373,7 +554,7 @@ toggleMenu(){
     this.scene.get('UIScene').events.emit('toggleMenu');
 }
 
-//경험치 갱신 메서드
+//경험치 갱신 및 레벨업 메서드
 updateExpBar(currentExp){
     console.log("Player Level:", this.playerLevel, "Current Exp:", currentExp);
 
@@ -384,13 +565,15 @@ updateExpBar(currentExp){
     while(this.currentExp >= expNeeded){
         this.currentExp -= expNeeded; //초가분을 계산
         this.playerLevel++; //레벨업
+        this.playerSkillPoints++; // 스킬 포인트 증가
+        console.log(`레벨업! 현재 레벨: ${this.playerLevel}, 스킬 포인트: ${this.playerSkillPoints}`);
 
         //새 레벨에 필요한 경험치 업데이트
         
         if(this.playerLevel -1 < this.expNeededPerLevel.length){
             expNeeded = this.expNeededPerLevel[this.playerLevel-1];
         }
-        console.log("레벨업! 레벨:",this.playerLevel);
+    
         // 레벨 텍스트 업데이트
         this.playerLevelText.setText(`Level: ${this.playerLevel}`);
 
@@ -451,35 +634,38 @@ fireEnergyBolt(){
 
     
     //에너지 볼트 속도 및 방향 설정
-    let energyBolt = this.energyBolts.create(this.player.x, this.player.y, 'vault');
-    energyBolt.setScale(0.1); //에너지 볼트 크기 조절
-    energyBolt.damage = 50;// 에너지 볼트 데미지 
+    let energyBolt = this.physics.add.sprite(this.player.x, this.player.y, 'vault').play('vault');
+    energyBolt.setScale(0.2, -0.2); //에너지 볼트 크기 조절
+    energyBolt.damage = 5;// 에너지 볼트 데미지 
     
-    this.physics.moveToObject(energyBolt, closestEnemy, 500); //에너지볼트 속도 300
+    this.physics.moveToObject(energyBolt, closestEnemy, 600); //에너지볼트 속도 300
 
     //에너지볼트가 적에게 닿았을 때의 처리를 위한 충돌 설정
     this.physics.add.collider(energyBolt, this.enemies,(bolt,enemy)=>{
         bolt.destroy(); //에너지 볼트 제거
-        enemy.health -= bolt.damage; // 적의 체력 감소
-        if(enemy.health <= 0){
-            enemy.destroy(); //적 제거
-        }
+        this.playerHitEnemy(closestEnemy , energyBolt.damage)
     })
 
     //에너지 볼트의 회전 각도 설정
     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, closestEnemy.x, closestEnemy.y);
-    energyBolt.rotation = angle;
+    energyBolt.rotation = angle- (5 * Math.PI / 4);
 }
 
 //썬더로직
 castThunder(){
-    //사용자 주위에서 랜덤 위치 생성
-    let randomX = Phaser.Math.Between(this.player.x -200, this.player.x +200);
-    let randomY = Phaser.Math.Between(this.player.y -200, this.player.y +200);
+     // 화면에 보이는 적 중에서 랜덤하게 하나 선택
+    let visibleEnemies = this.enemies.getChildren().filter(enemy => enemy.visible);
+    if (visibleEnemies.length === 0) {
+         return; // 화면에 보이는 적이 없으면 함수 종료
+    }
+
+    let targetEnemy = Phaser.Math.RND.pick(visibleEnemies);
+    let randomX = targetEnemy.x;
+    let randomY = targetEnemy.y;
 
     let thunder = this.add.sprite(randomX, randomY, 'thunder').play('thunder');
     thunder.setScale(0.5);
-    thunder.damage = 100;
+    thunder.damage = 10;
 
     //데미지 로직
     thunder.on('animationcomplete', ()=> {
@@ -487,12 +673,9 @@ castThunder(){
 
         //범위 추적 및 데미지 적용
         this.enemies.getChildren().forEach(enemy => {
-            if(Phaser.Math.Distance.Between(thunder.x, thunder.y, enemy.x , enemy.y) <= 50) {
-                //적에게 데미지 적용
-                enemy.health -= thunder.damage; // 적의 체력 감소
-                if(enemy.health <= 0){
-                    enemy.destroy(); //적 제거
-                }
+            if(Phaser.Math.Distance.Between(thunder.x, thunder.y, enemy.x , enemy.y) <= 10) {
+                this.playerHitEnemy(enemy, thunder.damage);
+                
             }
         })
     })
@@ -506,7 +689,7 @@ castDis(){
 
     let dis = this.add.sprite(disX, disY, 'dis').play('dis');
     dis.setScale(0.5);
-    dis.damage = 100;
+    dis.damage = 0;
 
     //데미지 로직
     dis.on('animationcomplete', ()=> {
@@ -516,10 +699,7 @@ castDis(){
         this.enemies.getChildren().forEach(enemy => {
             if(Phaser.Math.Distance.Between(dis.x, dis.y, enemy.x , enemy.y) <= 300) {
                 //적에게 데미지 적용
-                enemy.health -= dis.damage; // 적의 체력 감소
-                if(enemy.health <= 0){
-                    enemy.destroy(); //적 제거
-                }
+                this.playerHitEnemy(enemy, dis.damage); // 수정: 플레이어가 적에게 데미지 적용
             }
         })
     })
@@ -545,22 +725,41 @@ autoAttack(){
     if(this.player){
     console.log("기본공격 무한반복");
     this.isAttacking = true;
-    this.player.anims.play('playerAttack', true); //공격 애니메이션 재생
-        this.checkAttackHit();
+    // 플레이어의 방향을 고려하여 애니메이션 위치 조정
+    const direction = this.player.flipX ? -1 : 1; // 플레이어가 왼쪽을 보고 있다면 -1, 오른쪽을 보고 있다면 1
+    let attackAnim = this.add.sprite(this.player.x, this.player.y, 'playerAttack').setScale(1);
+    attackAnim.setFlipX(this.player.flipX); // 플레이어의 방향에 따라 애니메이션 반전
+    attackAnim.play('playerAttack'); // 공격 애니메이션 재생
 
+    // 공격 돌진 애니메이션: 플레이어 위치에서 앞으로 살짝 전진
+    this.tweens.add({
+        targets: attackAnim,
+        x: this.player.x - 60 * direction, // 30픽셀 전방으로 이동
+        y: this.player.y + 10 * direction,
+        ease: 'Power1', // 이동 애니메이션 효과
+        duration: 200, // 200 밀리초 동안 이동
+    });
 
-
-    this.player.once('animationcomplete', (animation)=>{
-        if(animation.key === 'playerAttack'){
-            this.isAttacking = false;
-            console.log("공격 애니메이션 완료"); // 콘솔 로그 추가
-                
-        }
+    // 공격 애니메이션 완료 후 공격 처리 및 스프라이트 제거
+    attackAnim.on('animationcomplete', () => {
+        this.isAttacking = false;
+        console.log("공격 애니메이션 완료");
+        this.checkAttackHit(); // 공격 범위 내 적을 검사하고 공격 처리
+        attackAnim.destroy(); // 애니메이션 재생 후 스프라이트 제거
     });
 }
 }
 
-checkAttackHit(){
+// 공격 범위 내 적을 검사하고 공격 처리하는 함수
+checkAttackHit(attackAnim){
+
+    // 공격 애니메이션의 충돌 영역
+    const attackRange = new Phaser.Geom.Rectangle(
+        attackAnim.x - attackAnim.width / 2,
+        attackAnim.y - attackAnim.height / 2,
+        attackAnim.width,
+        attackAnim.height
+    );
     //플레이어와 충동한 적들을 가져옴
     const nearbyEnemies = this.enemies.getChildren();
 
@@ -577,6 +776,9 @@ checkAttackHit(){
         const enemyX = enemy.x;
         const enemyY = enemy.y;
 
+        // 적의 충돌 영역
+        const enemyBounds = enemy.getBounds();
+
         // 플레이어와 적 사이의 거리 계산
         const distance = Phaser.Math.Distance.Between(playerX, playerY, enemyX, enemyY);
 
@@ -584,14 +786,8 @@ checkAttackHit(){
         console.log(`플레이어와 적 간의 거리: ${distance}`);
 
         // 공격 범위 내에 있는 경우에만 데미지를 적용
-        if (distance <= 100) {
-            // 적의 체력 감소
-            enemy.health -= this.playerDamage;
-
-            // 만약 적의 체력이 0 이하면 적을 제거
-            if (enemy.health <= 0) {
-                enemy.destroy();
-            }
+        if (Phaser.Geom.Rectangle.Intersects(attackRange, enemyBounds)) {
+            this.playerHitEnemy(enemy, this.playerDamage); // 공격 범위 내 적을 검사하고 공격 처리
         }
     });
 }
@@ -600,39 +796,102 @@ checkAttackHit(){
 
 
 
-createEnemy() {
+createEnemy(initialType) {
     //화면의 가장자리에서 랜덤 위치 선택
     let x = Phaser.Math.Between(0,800);
     let y = Phaser.Math.Between(0,600);
+    //적의 기본 속성 및 스프라이트 크기 설정
+    let spriteKey, health, speed, scale,animMove, animHit, animDie;
     
-    // this.add.sprite 대신 this.physics.add.sprite를 사용하여 적을 생성
-    let enemy = this.physics.add.sprite(x, y, 'enemy0').play('enemyMove');
 
-    //크기 설정
-    enemy.setScale(3);
+     // 시간에 따라 강한 적이 더 자주 나타나도록 확률 조정
+    let elapsed = this.time.now / 1000; // 초 단위로 경과 시간 계산
+    let type = initialType; // 초기 타입 사용, 필요에 따라 수정 가능
+     if (elapsed < 30) { // 30초 이내
+        type = Phaser.Math.RND.weightedPick(['default']);
+     } else if (elapsed < 60) { // 1분 이내
+        type = Phaser.Math.RND.weightedPick(['default','default','W']);
+     } else if (elapsed < 90) { // 1분 30초 이내
+        type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z']);
+     } else if (elapsed < 120) { // 2분 이내
+        type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z','Z']);
+     } else if (elapsed < 180) { // 3분 이내
+        type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z','Z','O']);  
+     } else if (elapsed < 180) { // 3분 이내
+        type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z','Z','O','O']);             
+     } else { // 3분 이후
+        type = Phaser.Math.RND.weightedPick(['default','W', 'Z', 'O', 'T']);
+    }
+
+    
+    switch(type) {
+        case 'W':
+            spriteKey = 'enemyW0';
+            health = 10;
+            speed = 50;
+            scale = 3;
+            animMove = 'enemyWMove';
+            animHit = 'enemyWHit';
+            animDie = 'enemyWDie';
+            break;
+        
+        case 'Z':
+            spriteKey = 'enemyZ0';
+            health = 15;
+            speed = 55;
+            scale = 3;
+            animMove = 'enemyZMove';
+            animHit = 'enemyZHit';
+            animDie = 'enemyZDie';
+            break;
+        case 'O':
+            spriteKey = 'enemyT0';
+            health = 10;
+            speed = 60;
+            scale = 3.5;
+            animMove = 'enemyTMove';
+            animHit = 'enemyTHit';
+            animDie = 'enemyTDie';
+            break;    
+        default:
+            spriteKey = 'enemy0';
+            health = 5;
+            speed =60; 
+            scale = 3; 
+            animMove = 'enemyMove'; 
+            animHit = 'enemyHit';
+            animDie = 'enemyDie'; 
+
+    }
+
+    // 시간에 따른 강화 계수 적용
+    let timeFactor = Math.floor(this.time.now / 100000); // 게임 시작 후 지난 시간(분) 계산
+    health += 5 * timeFactor; // 매 5분마다 체력 20 증가
+    speed += 5 * timeFactor; // 매 분마다 속도 5 증가
+    
+
+    //적 객체 생성 및 설정
+    let enemy = this.physics.add.sprite(x, y, spriteKey);
+    enemy.setScale(scale);
     enemy.setDepth(1);
-    enemy.health = 100;
+    enemy.health = health;
+    enemy.speed =speed;
+    enemy.animMove = animMove;
+    enemy.animHit = animHit;
+    enemy.animDie = animDie;
+    enemy.play(animMove);
     
     //적의 이동 방향을 플레이어(중앙) 쪽으로 설정
     let angle = Phaser.Math.Angle.Between(x,y,this.player.x, this.player.y);
     enemy.rotation = angle;
 
     //적의 속도와 방향 설정
-    this.physics.moveToObject(enemy, this.player , 60);
+    this.physics.moveToObject(enemy, this.player , enemy.speed);
 
     //플레이어의 공격에 피격당할 수 있도록 충돌 처리
     this.physics.add.overlap(this.player, enemy, this.playerHitEnemy, null, this);
 
-    enemy.on('destroy', ()=>{
-        enemy.play('enemyDie');
-        this.createGold(enemy.x,enemy.y);
-        this.updateScore(1); //적하나 죽을때마다 1점 증가
-
-        
-    });
-
     
-
     this.enemies.add(enemy);
     
     return enemy;
@@ -666,7 +925,6 @@ checkGoldCollision() {
 collectGold(player, gold) {
    // 골드 수를 증가시키고, 골드 텍스트를 업데이트합니다.
     this.updateGold(1); // 골드를 획득할 때마다 1을 증가시킴
-     // 적 하나 죽을 때마다 경험치 10 증가
     this.currentExp += 10;
     this.updateExpBar(this.currentExp); // 업데이트된 경험치로 경험치 바 업데이트
     
@@ -696,25 +954,23 @@ playerHitEnemy(player, enemy){
 
         if(enemy.health <=0){
             // 체력이 0 이하이면 사망 애니메이션 재생 후 제거
-            enemy.play('enemyDie');
+            enemy.play(enemy.animDie);
             enemy.once('animationcomplete', () => {
+                this.createGold(enemy.x,enemy.y);
+                this.updateScore(1); //적하나 죽을때마다 1점 증가
                 enemy.destroy();
-                this.updateScore(1);  // 점수 증가
+                
             });
     }else{
          // 피격 애니메이션 재생
-        enemy.play('enemyHit');
+        enemy.play(enemy.animHit);
         enemy.once('animationcomplete', () => {
              // 피격 애니메이션 완료 후 이동 애니메이션으로 복귀
-            enemy.play('enemyMove');
-        });
-        //피격 후 잠시 무적 시간 설정
-        this.time.addEvent({
-        delay: 500, //0.5초 동안
-        callback: () => {
             enemy.isHit = false;
-            enemy.play('enemyMove');
-        }
+            enemy.play(enemy.animMove);
+    
+        
+        
     });
     }
 }
@@ -839,7 +1095,7 @@ handlePlayerEnemyCollision() {
 
             // 피격 후 무적 시간 설정
             this.time.addEvent({
-                delay: 500, // 0.5초
+                delay: 300, // 0.3초
                 callback: () => {
                     enemy.isHit = false; // 무적 시간 종료
                 }
