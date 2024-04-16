@@ -10,9 +10,12 @@ class GameScene extends Phaser.Scene{
             };
         this.enemies = null; // 전역 변수로 선언합니다.
         this.player = null; // player 전역 변수로 선언
-        this.playerHp = 100; // 플레이어의 초기 HP
-        this.maxHp = 100; // 플레이어의 최대 HP
+        this.playerHp = 50; // 플레이어의 초기 HP
+        this.maxHp = 50; // 플레이어의 최대 HP
         this.playerDamage = 5; //플레이어가 적에게 입히는 데미지의 기본값입니다.
+        this.playerCasting = 5;
+        this.playerDefense = 5;
+        this.playerSpeed =5;
         this.score = 0; //점수
         this.gold  = 0; // 골드
         this.goldGroup = null; // 골드 그룹
@@ -22,6 +25,7 @@ class GameScene extends Phaser.Scene{
         this.playerMaxLevel = 52; //최대 레벨
         this.exp = 0;
         this.maxExp =null;
+        this.lastDirection = 'left';
         this.expNeededPerLevel = [
             100,  // 레벨 1
             125,  // 레벨 2
@@ -269,6 +273,8 @@ create(){
     this.player.setDepth(1);
     this.player.displayWidth=96;
     this.player.displayHeight=114;
+    this.player.body.setSize(48,57);
+    this.player.body.setOffset(64, 29)
 
     //HP 바 그래픽 생성
     this.hpBar = this.add.graphics();
@@ -324,7 +330,7 @@ create(){
             {key: 'enemy3'},
         ],
         frameRate:10,
-        repeat:0
+        repeat:-1
     });
 
     // 적 유닛의 피격 애니메이션
@@ -354,7 +360,7 @@ this.anims.create({
         {key: 'enemyW5'}
     ],
     frameRate:10,
-    repeat: 0
+    repeat: -1
 });
 
 this.anims.create({
@@ -381,7 +387,7 @@ this.anims.create({
         {key: 'enemyZ5'}
     ],
     frameRate:10,
-    repeat: 0
+    repeat: -1
 });
 
 this.anims.create({
@@ -407,7 +413,7 @@ this.anims.create({
         {key: 'enemyO5'}
     ],
     frameRate:10,
-    repeat: 0
+    repeat: -1
 });
 
 this.anims.create({
@@ -530,7 +536,7 @@ this.anims.create({
     this.time.addEvent({
         delay: 7000, // 7초마다
         callback: ()=>{
-            if(this.SkillsLeaned.dis){
+            if(this.skillsLearned.dis){
                 this.castDis();
             }
         },
@@ -554,6 +560,22 @@ toggleMenu(){
     this.scene.get('UIScene').events.emit('toggleMenu');
 }
 
+//스탯 업그레이드 함수 정의
+upgradeStats(){
+    const upgrades =[
+        () => {this.playerDamage += this.playerDamage*0.5; console.log(`공격력 증가: ${this.playerDamage}`); },
+        () => {this.playerCasting -= this.playerCasting*0.05; console.log(`공격속도 증가: ${this.playerCasting}`); },
+        () => {this.playerSpeed += this.playerSpeed*0.5; console.log(`이동속도 증가: ${this.playerSpeed}`); },
+        () => {this.playerDefense += this.playerDefense*0.5; console.log(`방어력 증가: ${this.playerDefense}`); },
+        () => {this.playerHp += this.playerHp*0.5; console.log(`체력 증가: ${this.playerHp}`); }
+        
+
+    ];
+    // 무작위 업그레이드 함수 선택 및 실행
+    const randomUpgrade = Phaser.Math.RND.pick(upgrades);
+    randomUpgrade();
+}
+
 //경험치 갱신 및 레벨업 메서드
 updateExpBar(currentExp){
     console.log("Player Level:", this.playerLevel, "Current Exp:", currentExp);
@@ -565,7 +587,9 @@ updateExpBar(currentExp){
     while(this.currentExp >= expNeeded){
         this.currentExp -= expNeeded; //초가분을 계산
         this.playerLevel++; //레벨업
+        this.upgradeStats(); // 스탯 업그레이드 실행
         this.playerSkillPoints++; // 스킬 포인트 증가
+        this.scene.get('UIScene').toggleMenu();
         console.log(`레벨업! 현재 레벨: ${this.playerLevel}, 스킬 포인트: ${this.playerSkillPoints}`);
 
         //새 레벨에 필요한 경험치 업데이트
@@ -722,74 +746,43 @@ updateHpBar() {
 
 //자동 공격 실행 로직
 autoAttack(){
-    if(this.player){
+    if(this.player && !this.isAttacking){  //플레이어가 존재하고 현재 공격중이 아닐때만 실행
     console.log("기본공격 무한반복");
     this.isAttacking = true;
     // 플레이어의 방향을 고려하여 애니메이션 위치 조정
-    const direction = this.player.flipX ? -1 : 1; // 플레이어가 왼쪽을 보고 있다면 -1, 오른쪽을 보고 있다면 1
-    let attackAnim = this.add.sprite(this.player.x, this.player.y, 'playerAttack').setScale(1);
-    attackAnim.setFlipX(this.player.flipX); // 플레이어의 방향에 따라 애니메이션 반전
+    const direction = this.lastDirection === 'left' ? -1 : 1;
+     // 플레이어가 왼쪽을 보고 있다면 -1, 오른쪽을 보고 있다면 1
+    
+    //공격 애니메이션 스프라이트 생성 및 위치 조정
+    console.log(direction, this.lastDirection);
+    let attackX = this.player.x + (50 * direction); // 공격 시작 위치 동적 조정
+    let attackAnim = this.physics.add.sprite(attackX, this.player.y+20, 'playerAttack').setScale(1);
+    attackAnim.setFlipX(this.lastDirection !=='left'); // 플레이어의 방향에 따라 애니메이션 반전
     attackAnim.play('playerAttack'); // 공격 애니메이션 재생
-
+    attackAnim.setAlpha(0.5); // 애니메이션을 투명화하여 잔상 효과
+    
+    //충돌 감시 설정
+    this.physics.add.collider(attackAnim, this.enemies, (attackAnim, enemy)=>{
+        if(enemy && !enemy.isHit && enemy.active){
+            this.playerHitEnemy(attackAnim,enemy);
+        }
+    });
+    
     // 공격 돌진 애니메이션: 플레이어 위치에서 앞으로 살짝 전진
     this.tweens.add({
         targets: attackAnim,
-        x: this.player.x - 60 * direction, // 30픽셀 전방으로 이동
-        y: this.player.y + 10 * direction,
+        x: this.player.x + (100 * direction), // 돌진 방향과 거리 동적 조정
+        y: this.player.y + 20, 
         ease: 'Power1', // 이동 애니메이션 효과
-        duration: 200, // 200 밀리초 동안 이동
-    });
-
-    // 공격 애니메이션 완료 후 공격 처리 및 스프라이트 제거
-    attackAnim.on('animationcomplete', () => {
-        this.isAttacking = false;
-        console.log("공격 애니메이션 완료");
-        this.checkAttackHit(); // 공격 범위 내 적을 검사하고 공격 처리
-        attackAnim.destroy(); // 애니메이션 재생 후 스프라이트 제거
-    });
-}
-}
-
-// 공격 범위 내 적을 검사하고 공격 처리하는 함수
-checkAttackHit(attackAnim){
-
-    // 공격 애니메이션의 충돌 영역
-    const attackRange = new Phaser.Geom.Rectangle(
-        attackAnim.x - attackAnim.width / 2,
-        attackAnim.y - attackAnim.height / 2,
-        attackAnim.width,
-        attackAnim.height
-    );
-    //플레이어와 충동한 적들을 가져옴
-    const nearbyEnemies = this.enemies.getChildren();
-
-    //플레이어의 위치
-    const playerX = this.player.x;
-    const playerY = this.player.y;
-
-     // 콘솔에 플레이어의 현재 위치 출력
-    console.log(`플레이어 위치 - X: ${playerX}, Y: ${playerY}`);
-
-    // 플레이어 주변의 적을 순회하며 공격 범위 내에 있는지 확인하고 데미지를 적용
-    nearbyEnemies.forEach((enemy) => {
-        // 적의 위치
-        const enemyX = enemy.x;
-        const enemyY = enemy.y;
-
-        // 적의 충돌 영역
-        const enemyBounds = enemy.getBounds();
-
-        // 플레이어와 적 사이의 거리 계산
-        const distance = Phaser.Math.Distance.Between(playerX, playerY, enemyX, enemyY);
-
-        // 콘솔에 거리 정보 출력
-        console.log(`플레이어와 적 간의 거리: ${distance}`);
-
-        // 공격 범위 내에 있는 경우에만 데미지를 적용
-        if (Phaser.Geom.Rectangle.Intersects(attackRange, enemyBounds)) {
-            this.playerHitEnemy(enemy, this.playerDamage); // 공격 범위 내 적을 검사하고 공격 처리
+        duration: 500, // 500 밀리초 동안 이동
+        onComplete: () => {
+            console.log("공격 애니메이션 완료");
+            attackAnim.destroy(); // 애니메이션 재생 후 스프라이트 제거
+            this.isAttacking = false;
         }
     });
+    
+}
 }
 
 
@@ -865,7 +858,7 @@ createEnemy(initialType) {
     }
 
     // 시간에 따른 강화 계수 적용
-    let timeFactor = Math.floor(this.time.now / 100000); // 게임 시작 후 지난 시간(분) 계산
+    let timeFactor = Math.floor(this.time.now / 10000); // 게임 시작 후 지난 시간(분) 계산
     health += 5 * timeFactor; // 매 5분마다 체력 20 증가
     speed += 5 * timeFactor; // 매 분마다 속도 5 증가
     
@@ -926,21 +919,8 @@ collectGold(player, gold) {
    // 골드 수를 증가시키고, 골드 텍스트를 업데이트합니다.
     this.updateGold(1); // 골드를 획득할 때마다 1을 증가시킴
     this.currentExp += 10;
+    gold.destroy();
     this.updateExpBar(this.currentExp); // 업데이트된 경험치로 경험치 바 업데이트
-    
-    
-    // 골드가 흔들리고 사라지는 효과를 주기 위해 Tween 애니메이션을 추가합니다.
-    this.tweens.add({
-        targets: gold,
-        duration: 200, // 0.2초 동안 애니메이션 수행
-        scaleX: 0.8, // X 축 스케일을 줄이기
-        scaleY: 0.8, // Y 축 스케일을 줄이기
-        alpha: 0, // 투명도를 0으로 설정하여 사라지도록 함
-        onComplete: () => {
-            // 애니메이션이 완료되면 골드를 제거합니다.
-            gold.destroy();
-        }
-    });
 }
 
 
@@ -966,13 +946,18 @@ playerHitEnemy(player, enemy){
         enemy.play(enemy.animHit);
         enemy.once('animationcomplete', () => {
              // 피격 애니메이션 완료 후 이동 애니메이션으로 복귀
-            enemy.isHit = false;
-            enemy.play(enemy.animMove);
+            enemy.isHit = false; //피격 상태 해제
+            enemy.play(enemy.animMove); // 기본 이동 애니메이션으로 복귀
     
-        
-        
     });
     }
+
+    //피격 상태 해제 타이머 설정
+    this.time.delayedCall(500, ()=> {
+        if(enemy.active){//적이 아직 게임에 존재하는지 확인
+            enemy.isHit = false;
+        }
+    }, [], this);
 }
 }
 
@@ -981,7 +966,7 @@ playerHitEnemy(player, enemy){
 update() {
     // 움직임 상태와 마지막 방향 초기화
     let isMoving = false;
-    let lastDirection = this.lastDirection || 'left';
+    // let lastDirection = this.lastDirection || 'left';
     
     // 방향키 입력에 따른 플레이어와 환경의 이동 처리
     if (this.cursors.left.isDown || this.cursors.right.isDown || this.cursors.up.isDown || this.cursors.down.isDown) {
@@ -1078,26 +1063,27 @@ enemiesChasePlayer() {
         var angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         
         // 적의 속도 벡터 설정하여 플레이어를 향해 이동
-        enemy.body.velocity.x = Math.cos(angle) * 60; // X 방향 속도
-        enemy.body.velocity.y = Math.sin(angle) * 60; // Y 방향 속도
+        enemy.body.velocity.x = Math.cos(angle) * enemy.speed; // X 방향 속도
+        enemy.body.velocity.y = Math.sin(angle) * enemy.speed; // Y 방향 속도
     });
 }
 
 // 플레이어와 적의 충돌 처리 로직
 handlePlayerEnemyCollision() {
     this.physics.overlap(this.player, this.enemies, (player, enemy) => {
-        if (!enemy.isHit) { // 적이 피격되지 않았다면
+        if (!player.isHit) { // 플레이어가 피격 상태가 아닐때만 처리
             console.log("플레이어가 적에게 피격됨");
-            enemy.isHit = true; // 피격 상태로 변경
-            this.playerHp -= 10; // 플레이어 HP 감소
+            this.playerHp -= 5; // 플레이어 HP 감소
             console.log(`플레이어 HP: ${this.playerHp}`);
             this.updateHpBar(); // HP 바 업데이트
 
+            player.isHit = true; // 플레이어 피격 상태로 변경
+            
             // 피격 후 무적 시간 설정
             this.time.addEvent({
-                delay: 300, // 0.3초
+                delay: 1000, // 0.5초
                 callback: () => {
-                    enemy.isHit = false; // 무적 시간 종료
+                    player.isHit = false; // 플레이어 무적 시간 종료
                 }
             });
         }
