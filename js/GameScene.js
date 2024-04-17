@@ -10,6 +10,7 @@ class GameScene extends Phaser.Scene{
             };
         this.enemies = null; // 전역 변수로 선언합니다.
         this.player = null; // player 전역 변수로 선언
+        this.playerHitBox = null;
         this.playerHp = 50; // 플레이어의 초기 HP
         this.maxHp = 50; // 플레이어의 최대 HP
         this.playerDamage = 5; //플레이어가 적에게 입히는 데미지의 기본값입니다.
@@ -267,14 +268,24 @@ create(){
     //배경 생성
     this.background = this.add.tileSprite(400,300,800,600, 'background');
 
+     // 보이지 않는 스프라이트를 생성합니다. 이 스프라이트는 게임의 물리적 상호작용을 관리합니다.
+    this.playerHitBox = this.physics.add.sprite(400, 300, null);
+    this.playerHitBox.setVisible(false); // 스프라이트를 화면에 보이지 않도록 설정합니다.
+    this.playerHitBox.body.setSize(20, 40); // 히트박스의 크기를 설정합니다.
+    this.playerHitBox.body.setOffset(1, 1); // 히트박스의 크기를 설정합니다.
+
     //플레이어 케릭터 생성 (화면 중앙에 고정)
-    this.player = this.physics.add.sprite(400,300, 'player');
+    this.player = this.add.sprite(400,300, 'player');
     //플레이어의 depth 값을 배경보다 높게 설정
     this.player.setDepth(1);
     this.player.displayWidth=96;
     this.player.displayHeight=114;
-    this.player.body.setSize(48,57);
-    this.player.body.setOffset(64, 29)
+   
+
+
+    // 디버그 그래픽 활성화
+    const debugGraphics = this.add.graphics().setAlpha(0.75);
+    this.physics.world.createDebugGraphic().setVisible(true); // 물리 디버그 그래픽 활성화
 
     //HP 바 그래픽 생성
     this.hpBar = this.add.graphics();
@@ -460,7 +471,7 @@ this.anims.create({
 
     //자동 공격 타이머 이벤트 설정
     this.time.addEvent({
-        delay:5000, //5초마다
+        delay:3000, //5초마다
         callback: this.autoAttack, // 자동공격!
         callbackScope: this, // this 컨텍스트를 현재 Scene으로 설정
         loop: true // 무한 반복
@@ -563,18 +574,34 @@ toggleMenu(){
 //스탯 업그레이드 함수 정의
 upgradeStats(){
     const upgrades =[
-        () => {this.playerDamage += this.playerDamage*0.5; console.log(`공격력 증가: ${this.playerDamage}`); },
-        () => {this.playerCasting -= this.playerCasting*0.05; console.log(`공격속도 증가: ${this.playerCasting}`); },
-        () => {this.playerSpeed += this.playerSpeed*0.5; console.log(`이동속도 증가: ${this.playerSpeed}`); },
-        () => {this.playerDefense += this.playerDefense*0.5; console.log(`방어력 증가: ${this.playerDefense}`); },
-        () => {this.playerHp += this.playerHp*0.5; console.log(`체력 증가: ${this.playerHp}`); }
+        { name: 'playerDamage' , method: () => this.playerDamage += this.playerDamage*0.5},
+        { name: 'playerCasting', method: () => this.playerCasting -= this.playerCasting * 0.05 },
+        { name: 'playerSpeed', method: () => this.playerSpeed += this.playerSpeed * 0.5 },
+        { name: 'playerDefense', method: () => this.playerDefense += this.playerDefense * 0.5 },
+        { name: 'playerHp', method: () => this.playerHp += this.playerHp * 0.5 }
         
 
     ];
-    // 무작위 업그레이드 함수 선택 및 실행
-    const randomUpgrade = Phaser.Math.RND.pick(upgrades);
-    randomUpgrade();
+    // 무작위 업그레이드 선택
+    const chosenStat = Phaser.Math.RND.pick(upgrades);
+    chosenStat.method();
+    console.log(`${chosenStat.name} 업그레이드됨: 현재 값 = ${this[chosenStat.name]}`);
+
+    // 업그레이드된 값 저장
+    this.game.registry.set(chosenStat.name, this[chosenStat.name]);
 }
+
+
+// 스킬 포인트를 추가하고, 스킬 학습 가능 여부 확인
+updateSkillPoints(points) {
+    // 레지스트리에서 기존 스킬 포인트 가져오기
+    const existingPoints = this.game.registry.get('playerSkillPoints') || 0;
+    this.playerSkillPoints += existingPoints + points;
+    this.game.registry.set('playerSkillPoints', this.playerSkillPoints);
+    // UIScene에 스킬 포인트 업데이트를 알립니다.
+    this.events.emit('updateSkillPoints', this.playerSkillPoints);
+}
+
 
 //경험치 갱신 및 레벨업 메서드
 updateExpBar(currentExp){
@@ -588,9 +615,12 @@ updateExpBar(currentExp){
         this.currentExp -= expNeeded; //초가분을 계산
         this.playerLevel++; //레벨업
         this.upgradeStats(); // 스탯 업그레이드 실행
-        this.playerSkillPoints++; // 스킬 포인트 증가
+        this.updateSkillPoints(1); // 레벨업 할 때마다 스킬 포인트 1 증가
+        
         this.scene.get('UIScene').toggleMenu();
         console.log(`레벨업! 현재 레벨: ${this.playerLevel}, 스킬 포인트: ${this.playerSkillPoints}`);
+
+        
 
         //새 레벨에 필요한 경험치 업데이트
         
@@ -638,7 +668,7 @@ updateGold(gold) {
 
 
 fireEnergyBolt(){
-    if(this.enemies.getChildren().length === 0){
+    if(!this.skillsLearned.fireEnergyBolt || this.enemies.getChildren().length === 0){
         return;
     }
 
@@ -660,7 +690,7 @@ fireEnergyBolt(){
     //에너지 볼트 속도 및 방향 설정
     let energyBolt = this.physics.add.sprite(this.player.x, this.player.y, 'vault').play('vault');
     energyBolt.setScale(0.2, -0.2); //에너지 볼트 크기 조절
-    energyBolt.damage = 5;// 에너지 볼트 데미지 
+    energyBolt.damage = this.playerDamage;// 에너지 볼트 데미지 
     
     this.physics.moveToObject(energyBolt, closestEnemy, 600); //에너지볼트 속도 300
 
@@ -679,7 +709,7 @@ fireEnergyBolt(){
 castThunder(){
      // 화면에 보이는 적 중에서 랜덤하게 하나 선택
     let visibleEnemies = this.enemies.getChildren().filter(enemy => enemy.visible);
-    if (visibleEnemies.length === 0) {
+    if (!this.skillsLearned.castThunder ||visibleEnemies.length === 0) {
          return; // 화면에 보이는 적이 없으면 함수 종료
     }
 
@@ -689,7 +719,7 @@ castThunder(){
 
     let thunder = this.add.sprite(randomX, randomY, 'thunder').play('thunder');
     thunder.setScale(0.5);
-    thunder.damage = 10;
+    thunder.damage = this.playerDamage;
 
     //데미지 로직
     thunder.on('animationcomplete', ()=> {
@@ -707,6 +737,10 @@ castThunder(){
 }
 
 castDis(){
+
+    if (!this.skillsLearned.castDis) {
+        return; // 스킬을 배우지 않았다면 함수 종료
+    }
     //사용자 주위에서 랜덤 위치 생성
     let disX =this.player.x
     let disY =this.player.y
@@ -760,9 +794,13 @@ autoAttack(){
     attackAnim.setFlipX(this.lastDirection !=='left'); // 플레이어의 방향에 따라 애니메이션 반전
     attackAnim.play('playerAttack'); // 공격 애니메이션 재생
     attackAnim.setAlpha(0.5); // 애니메이션을 투명화하여 잔상 효과
+
+    // 히트박스 크기와 위치 조정
+    attackAnim.body.setSize(60, 60); // 히트박스의 너비와 높이를 설정
+    attackAnim.body.setOffset(50, 25); // 히트박스의 위치를 조정
     
     //충돌 감시 설정
-    this.physics.add.collider(attackAnim, this.enemies, (attackAnim, enemy)=>{
+    this.physics.add.overlap(attackAnim, this.enemies, (attackAnim, enemy)=>{
         if(enemy && !enemy.isHit && enemy.active){
             this.playerHitEnemy(attackAnim,enemy);
         }
@@ -798,21 +836,21 @@ createEnemy(initialType) {
     
 
      // 시간에 따라 강한 적이 더 자주 나타나도록 확률 조정
-    let elapsed = this.time.now / 1000; // 초 단위로 경과 시간 계산
+    let elapsed = this.scene.get('UIScene').elapsed;
     let type = initialType; // 초기 타입 사용, 필요에 따라 수정 가능
-     if (elapsed < 30) { // 30초 이내
+     if (elapsed < 60) { // 30초 이내
         type = Phaser.Math.RND.weightedPick(['default']);
-     } else if (elapsed < 60) { // 1분 이내
-        type = Phaser.Math.RND.weightedPick(['default','default','W']);
      } else if (elapsed < 90) { // 1분 30초 이내
-        type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z']);
+        type = Phaser.Math.RND.weightedPick(['default','default','W']);
      } else if (elapsed < 120) { // 2분 이내
+        type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z']);
+     } else if (elapsed < 150) { // 2분 30초 이내
         type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z','Z']);
      } else if (elapsed < 180) { // 3분 이내
         type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z','Z','O']);  
-     } else if (elapsed < 180) { // 3분 이내
+     } else if (elapsed < 210) { // 3분 30초 이내
         type = Phaser.Math.RND.weightedPick(['default','default','W','w','Z','Z','O','O']);             
-     } else { // 3분 이후
+     } else { // 3분 30초 이후
         type = Phaser.Math.RND.weightedPick(['default','W', 'Z', 'O', 'T']);
     }
 
@@ -821,7 +859,7 @@ createEnemy(initialType) {
         case 'W':
             spriteKey = 'enemyW0';
             health = 10;
-            speed = 50;
+            speed = 45;
             scale = 3;
             animMove = 'enemyWMove';
             animHit = 'enemyWHit';
@@ -831,7 +869,7 @@ createEnemy(initialType) {
         case 'Z':
             spriteKey = 'enemyZ0';
             health = 15;
-            speed = 55;
+            speed = 50;
             scale = 3;
             animMove = 'enemyZMove';
             animHit = 'enemyZHit';
@@ -840,7 +878,7 @@ createEnemy(initialType) {
         case 'O':
             spriteKey = 'enemyT0';
             health = 10;
-            speed = 60;
+            speed = 55;
             scale = 3.5;
             animMove = 'enemyTMove';
             animHit = 'enemyTHit';
@@ -849,7 +887,7 @@ createEnemy(initialType) {
         default:
             spriteKey = 'enemy0';
             health = 5;
-            speed =60; 
+            speed =40; 
             scale = 3; 
             animMove = 'enemyMove'; 
             animHit = 'enemyHit';
@@ -858,8 +896,8 @@ createEnemy(initialType) {
     }
 
     // 시간에 따른 강화 계수 적용
-    let timeFactor = Math.floor(this.time.now / 10000); // 게임 시작 후 지난 시간(분) 계산
-    health += 5 * timeFactor; // 매 5분마다 체력 20 증가
+    let timeFactor = Math.floor(elapsed/ 210); // 게임 시작 후 지난 시간(분) 계산
+    health += 5 * timeFactor; // 매 5분마다 체력 5 증가
     speed += 5 * timeFactor; // 매 분마다 속도 5 증가
     
 
@@ -902,12 +940,12 @@ createGold(x, y) {
     this.goldGroup.add(gold);
     
     // 골드와 플레이어 간의 충돌을 처리합니다.
-    this.physics.add.overlap(this.player, gold, this.collectGold, null, this);
+    this.physics.add.overlap(this.playerHitBox, gold, this.collectGold, null, this);
 }
 
 // 골드와 플레이어의 충돌을 감지하고, 골드를 주운 경우의 처리를 수행합니다.
 checkGoldCollision() {
-    this.physics.overlap(this.player, this.goldGroup, (player, gold) => {
+    this.physics.overlap(this.playerHitBox, this.goldGroup, (playerHitBox, gold) => {
         gold.destroy(); // 골드를 제거합니다.
         this.collectGold(); // 골드를 주운 후 처리를 합니다.
     }, null, this);
@@ -915,7 +953,7 @@ checkGoldCollision() {
 
 
 // 플레이어가 골드를 획득했을 때 호출되는 함수
-collectGold(player, gold) {
+collectGold(playerHitBox, gold) {
    // 골드 수를 증가시키고, 골드 텍스트를 업데이트합니다.
     this.updateGold(1); // 골드를 획득할 때마다 1을 증가시킴
     this.currentExp += 10;
@@ -1070,55 +1108,35 @@ enemiesChasePlayer() {
 
 // 플레이어와 적의 충돌 처리 로직
 handlePlayerEnemyCollision() {
-    this.physics.overlap(this.player, this.enemies, (player, enemy) => {
-        if (!player.isHit) { // 플레이어가 피격 상태가 아닐때만 처리
+    this.physics.overlap(this.playerHitBox, this.enemies, (playerHitBox, enemy) => {
+        if (!playerHitBox.isHit) { // 플레이어가 피격 상태가 아닐때만 처리
             console.log("플레이어가 적에게 피격됨");
             this.playerHp -= 5; // 플레이어 HP 감소
             console.log(`플레이어 HP: ${this.playerHp}`);
             this.updateHpBar(); // HP 바 업데이트
 
-            player.isHit = true; // 플레이어 피격 상태로 변경
+            playerHitBox.isHit = true; // 플레이어 피격 상태로 변경
+
+            this.player.setTint(0xff0000); // 플레이어를 빨간색으로 변경
+            this.cameras.main.shake(300, 0.01); // 짧은 떨림 효과
             
             // 피격 후 무적 시간 설정
             this.time.addEvent({
-                delay: 1000, // 0.5초
+                delay: 3000, // 0.5초
                 callback: () => {
-                    player.isHit = false; // 플레이어 무적 시간 종료
+                    playerHitBox.isHit = false; // 플레이어 무적 시간 종료
+                    this.player.clearTint(); // 플레이어 색상 초기화
                 }
             });
         }
     }, null, this);
 }
+
+
+
+saveGoldToRegistry(){
+    this.game.registry.set('gold', this.gold);
+    console.log(this.gold);
 }
 
-
-
-
-
-
-//게임의 초기 설정을 위한 config 객체입니다.
-var config={
-    type:Phaser.AUTO,
-    scale:{
-        mode: Phaser.Scale.FIT,
-        parent: 'phaser-container',
-        autoCenter : Phaser.Scale.CENTER_BOTH,
-        width: 800,
-        height: 600,
-        backgroundColor: '#5DACD8'
-    },
-    scene:[GameScene,UIScene],
-    
-    //여기에 physics 설정을 추가합니다.
-    physics: {
-        default: 'arcade',
-        arcade:{
-            gravity: {y: 0}, 
-            debug: false
-
-        }
-    }
-};
-
-
-var game=new Phaser.Game(config);
+}

@@ -1,8 +1,9 @@
 class UIScene extends Phaser.Scene{
     constructor(){
-        super({key: 'UIScene', active: true});
+        super({key: 'UIScene'});
         this.timerEvent = null;  // 타이머 이벤트를 저장할 변수
         this.pausedTime = 0;     // 일시정지된 시간을 기록
+        this.elapsed = 0; //게임의 총 경과 시간
     }
 
     create(){
@@ -35,11 +36,14 @@ class UIScene extends Phaser.Scene{
         }
 
     updateTimer(){
-        const elapsed = Math.floor((this.time.now - this.startTime) /1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
+        this.elapsed = Math.floor((this.time.now - this.startTime) /1000);
+        const minutes = Math.floor(this.elapsed / 60);
+        const seconds = this.elapsed % 60;
         this.timerText.setText(this.formatTime(minutes, seconds));
-    }    
+
+        
+    }
+    
 
     formatTime(minutes, seconds) {
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -69,8 +73,9 @@ toggleMenu() {
     // 메뉴가 열릴 때, 현재 씬을 일시 정지
     this.scene.pause('GameScene');
     this.pausedTime = this.time.now - this.startTime;  // 현재 타이머 상태 저장
-            this.timerEvent.paused = true;  // 타이머 이벤트 일시정지
-    } else {
+    this.timerEvent.paused = true;  // 타이머 이벤트 일시정지
+    this.refreshMenu();  // 메뉴를 갱신하여 최신 정보 표시    
+} else {
        // 메뉴가 닫힐 때, 현재 씬을 재개
     this.scene.resume('GameScene');
     this.startTime = this.time.now - this.pausedTime;  // 일시정지된 시간 고려
@@ -84,7 +89,7 @@ toggleMenu() {
         
         //메뉴 UI 요소를 메뉴 그룹에 추가, 메뉴 배경 스타일 설정
         let menuBackground = this.add.graphics().fillStyle(0x000000, 0.7)
-                                                .fillRect(100,70,600,500)
+                                                .fillRect(100,70,650,500)
                                                 .setDepth(4);
 
         //X버튼 추가
@@ -100,13 +105,16 @@ toggleMenu() {
         })
         
         //스탯 및 스킬 이름 배열
-        const stats = ['공격력' , '공격속도' , '방어력' , '체력', '이동속도'];
+        const stats = ['[공격력] ' , '[공격속도] ' , '[방어력] ' , '[체력] ', '[이동속도] '];
+        const statKeys = ['playerDamage', 'playerCasting', 'playerDefense', 'playerHp', 'playerSpeed'];
         const skills = ['에너지볼트' , '콜라이트닝' , '디스인티그레이트'];
+        const skillKeys = ['fireEnergyBolt', 'castThunder', 'castDis'];
         
          // 스탯 표시
     let yPosStats = 120; // 스탯 표시 시작 위치
-    let statsTexts = stats.map(stat => {
-        let text = this.add.text(140, yPosStats, `${stat}: [] `, {
+    let statsTexts = stats.map((stat, index) => {
+        let statValue = this.game.registry.get(statKeys[index]) || 0; // 레지스트리에서 값 가져오기
+        let text = this.add.text(140, yPosStats, `${stat}+ ${statValue}`, {
             fontSize: '24px',
             fill: '#00FF00',
             fontStyle: 'bold'
@@ -117,27 +125,41 @@ toggleMenu() {
 
     // 스킬 표시
     let yPosSkills = 120; // 스킬 표시 시작 위치, 스탯에서 약간의 여백을 두고 시작
-    let skillTexts = skills.map(skill => {
-        let text = this.add.text(420, yPosSkills, `${skill}:\n [] `, {
+    let skillTexts = skills.map((skill, index) => {
+        let skillData = this.game.registry.get(skillKeys[index]);
+        let skillStatus = skillData ? `Lv ${skillData.level}` : '미습득';
+        let actionText = skillData ? '강화' : '배우기';
+        let text = this.add.text(420, yPosSkills, `${skill}: ${skillStatus}`, {
             fontSize: '24px',
             fill: '#FF6347',
             fontStyle: 'bold',
             wrapWidth: {width: 200}
         }).setDepth(5);
+        let actionButton = this.createSkillButton(450, yPosSkills+40, actionText, () => this.handleSkillAction(skillKeys[index]));
         yPosSkills += 90; // 다음 항목 위치
-        return text;
+        return {text, actionButton};
     });
+
+     // 스킬 포인트 표시
+     let skillPoints = this.game.registry.get('playerSkillPoints') || 0; // 스킬 포인트 불러오기
+    let skillPointsText = this.add.text(420, yPosStats, `스킬 포인트: ${skillPoints}}`, {
+        fontSize: '24px',
+        fill: '#FFFF00',
+        fontStyle: 'bold'
+    }).setDepth(5);
 
         //메뉴 그룹화
         this.menuGroup = this.add.group([
         menuBackground,
         
         
-        this.createButton(350, 470, '계속하기', this.playGame),
-        this.createButton(360, 520, '끝내기', this.quitGame),
+        this.createButton(220, 520, '<계속하기>', this.playGame),
+        this.createButton(460, 520, '<끝내기>', this.quitGame),
         closeButton,
         ...statsTexts,
-        ...skillTexts
+        ...skillTexts.map(st => st.text),
+        ...skillTexts.map(st => st.actionButton),
+        skillPointsText
         
         ]);
 
@@ -147,6 +169,48 @@ toggleMenu() {
 
         this.menuGroup.setVisible(false);
     }
+
+    createSkillButton(x, y, text, onClick) {
+        return this.add.text(x, y, `[${text}]`, {
+            fontSize: '20px',
+            fill: '#00FF00',
+            fontStyle: 'bold'
+        }).setInteractive().on('pointerdown', onClick).setDepth(5);
+    }
+    
+    handleSkillAction(skillKey) {
+        let skillData = this.game.registry.get(skillKey) || { level: 0 };
+        const skillCosts = {
+            fireEnergyBolt: 1, // 에너지볼트는 1 스킬 포인트 필요
+            castThunder: 2,   // 썬더는 2 스킬 포인트 필요
+            castDis: 5        // 디스는 5 스킬 포인트 필요
+        };
+        const requiredPoints  = skillData.level === 0 ? skillCosts[skillKey] : skillCosts[skillKey] + skillData.level; // 스킬을 배우거나 강화하는 데 필요한 포인트
+        
+        // 사용자의 현재 스킬 포인트 가져오기
+        let playerSkillPoints = this.game.registry.get('playerSkillPoints') || 0;
+
+        if (playerSkillPoints >= requiredPoints) {
+            skillData.level++;
+            this.game.registry.set(skillKey, skillData);
+            this.game.registry.set('playerSkillPoints', playerSkillPoints - requiredPoints); // 스킬 포인트 차감
+            this.refreshMenu();
+        } else {
+            console.log('스킬 포인트 부족');
+        }
+    }
+
+    refreshMenu() {
+        // 메뉴 업데이트 로직 작성
+        this.menuGroup.clear(true); // 기존 메뉴 요소 제거
+    
+        // 새로운 메뉴 생성
+        this.createMenu();
+    
+        // 메뉴 그룹을 다시 표시
+        this.menuGroup.setVisible(this.menuOpen);
+    }
+
 
     setupMenuControls(){
         //ESC 키 이벤트 핸들러 설정
@@ -158,11 +222,50 @@ toggleMenu() {
     
         
     }
-
+    
     createButton(x,y,text,onClick){
         let button =this.add.text(x,y,text,{fontSize: '24px', fill:'#ffffff', fontStyle:'bold'})
                     .setInteractive().setDepth(4).on('pointerdown', onClick.bind(this));
                 return button;    
+    }
+
+    destroy() {
+        this.scene.remove('GameScene');
+    }    
+    createQuitMenu(){
+        if (this.modal) return;  // 모달이 이미 표시되어 있으면 추가하지 않음
+        let rect = this.add.rectangle(400, 300, 500, 300, 0x000000, 1)
+        .setDepth(100); // 높은 깊이 값으로 설정하여 다른 요소들 위에 표시
+        let text = this.add.text(230, 200, '첫 화면으로 이동하시겠습니까?', {
+            fontSize: '24px',
+            fill: '#FF0000',
+            fontStyle: 'bold',
+            }).setDepth(100);
+        let yesButton = this.add.text(350, 300, '예', { fontSize: '24px', fill: '#FFF' })
+            .setInteractive()
+            .setDepth(101) // 높은 깊이 값으로 설정하여 다른 요소들 위에 표시
+            .on('pointerdown', () => {
+                // GameScene에서 골드 정보를 registry에 저장하는 함수 호출
+                this.scene.get('GameScene').saveGoldToRegistry();                
+                this.destroy()
+                this.scene.start('StartScene'); // StartScene으로 이동
+                this.destroyModal();
+
+            });
+        let noButton = this.add.text(450, 300, '아니오', { fontSize: '24px', fill: '#FFF' })
+            .setInteractive()
+            .setDepth(101) // 높은 깊이 값으로 설정하여 다른 요소들 위에 표시
+            .on('pointerdown', () => {
+                this.destroyModal();
+            });
+
+        this.modal = this.add.group([rect, text, yesButton, noButton]);
+    }
+
+    destroyModal() {
+        if (!this.modal) return;
+        this.modal.destroy(true);
+        this.modal = null;
     }
 
     
@@ -177,14 +280,12 @@ toggleMenu() {
     // 게임 종료 함수
     quitGame() {
 
-        const isConfirmed = confirm("정말로 게임을 종료하시겠습니까?");
         // 게임 종료 로직을 작성
+        this.createQuitMenu()
 
-        // 사용자가 '확인'을 선택한 경우, 게임 종료 로직을 수행합니다.
-    if (isConfirmed) {
-        this.game.destroy(true); // Phaser 게임 인스턴스 종료
-        this.game.destroy(true); // Phaser 게임 인스턴스 종료
-    }
+
+
+
 }
     
     
