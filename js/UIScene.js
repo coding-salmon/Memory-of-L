@@ -142,7 +142,7 @@ toggleMenu() {
 
      // 스킬 포인트 표시
      let skillPoints = this.game.registry.get('playerSkillPoints') || 0; // 스킬 포인트 불러오기
-    let skillPointsText = this.add.text(420, yPosStats, `스킬 포인트: ${skillPoints}}`, {
+    let skillPointsText = this.add.text(420, yPosStats, `스킬 포인트: ${skillPoints}`, {
         fontSize: '24px',
         fill: '#FFFF00',
         fontStyle: 'bold'
@@ -194,7 +194,11 @@ toggleMenu() {
             skillData.level++;
             this.game.registry.set(skillKey, skillData);
             this.game.registry.set('playerSkillPoints', playerSkillPoints - requiredPoints); // 스킬 포인트 차감
+            console.log(`스킬 ${skillKey}: level ${skillData.level}. 남은 스킬 포인트: ${playerSkillPoints - requiredPoints}`);
             this.refreshMenu();
+        // 스킬 레벨 업그레이드 이벤트를 GameScene으로 전달
+        this.events.emit('skillLevelChanged', { skillKey, level: skillData.level });
+
         } else {
             console.log('스킬 포인트 부족');
         }

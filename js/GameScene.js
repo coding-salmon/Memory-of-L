@@ -3,11 +3,11 @@ class GameScene extends Phaser.Scene{
     constructor(){
         super({ key: 'GameScene'});
         this.playerSkillPoints = 0; // 플레이어의 스킬 포인트
-        this.skillsLearned  = { // 배운 스킬 여부
-            fireEnergyBolt: false,
-            castThunder: false,
-            castDis: false
-            };
+        this.skills = { // 스킬 레벨 관리
+            fireEnergyBolt: 0,
+            castThunder: 0,
+            castDis: 0
+        };
         this.enemies = null; // 전역 변수로 선언합니다.
         this.player = null; // player 전역 변수로 선언
         this.playerHitBox = null;
@@ -213,6 +213,9 @@ preload(){
     //단검 이미지 생성
     this.load.image('dagger', '/node_modules/phaser/assets/dagger/dagger.png');
 
+    //파티클 이미지 생성
+    this.load.image('spark' , '/node_modules/phaser/assets/fire.png')
+
 
 }
 
@@ -226,6 +229,9 @@ create(){
 
     //UIScene과의 통신을 위해 이벤트를 설정합니다.
     this.events.on('toggleMenu', this.toggleMenu, this);
+
+     // UIScene에서 발송하는 이벤트 수신
+    this.scene.get('UIScene').events.on('skillLevelChanged', this.handleSkillLevelChange, this);
     
 
 
@@ -271,8 +277,8 @@ create(){
      // 보이지 않는 스프라이트를 생성합니다. 이 스프라이트는 게임의 물리적 상호작용을 관리합니다.
     this.playerHitBox = this.physics.add.sprite(400, 300, null);
     this.playerHitBox.setVisible(false); // 스프라이트를 화면에 보이지 않도록 설정합니다.
-    this.playerHitBox.body.setSize(20, 40); // 히트박스의 크기를 설정합니다.
-    this.playerHitBox.body.setOffset(1, 1); // 히트박스의 크기를 설정합니다.
+    this.playerHitBox.body.setSize(15, 30); // 히트박스의 크기를 설정합니다.
+    this.playerHitBox.body.setOffset(10, 5); // 히트박스의 크기를 설정합니다.
 
     //플레이어 케릭터 생성 (화면 중앙에 고정)
     this.player = this.add.sprite(400,300, 'player');
@@ -291,10 +297,6 @@ create(){
     this.hpBar = this.add.graphics();
     this.updateHpBar();
 
-    
-
-
-    
 
     //왼쪽으로 이동하는 애니메이션 추가
     this.anims.create({
@@ -491,17 +493,7 @@ this.anims.create({
             frameRate:10,
             repeat: 0
     })
-    //에너지 볼트 자동 공격
-    this.time.addEvent({
-        delay: 5000, //5초마다
-        callback: () => {
-            if (this.skillsLearned.fireEnergyBolt) {
-                this.fireEnergyBolt();
-            }
-        },
-        callbackScope:this,
-        loop: true // 무한반복
-    })
+    
     //썬더 애미메이션 생성
     this.anims.create({
         key: 'thunder',
@@ -517,7 +509,7 @@ this.anims.create({
     this.time.addEvent({
         delay: 5000, // 5초마다
         callback: ()=>{
-            if (this.skillsLearned.thunder) {
+            if (this.skills.thunder > 0) {
                 this.castThunder();
             }
         },
@@ -547,7 +539,7 @@ this.anims.create({
     this.time.addEvent({
         delay: 7000, // 7초마다
         callback: ()=>{
-            if(this.skillsLearned.dis){
+            if(this.skills.dis > 0){
                 this.castDis();
             }
         },
@@ -563,6 +555,62 @@ this.anims.create({
     
 
 }
+
+handleSkillLevelChange(data) {
+    const { skillKey, level } = data;
+    console.log(`UIScene에서 스킬 레벨 변경 수신: ${skillKey}, Level: ${level}`);
+
+    // 스킬 객체 업데이트
+    this.skills[skillKey] = level
+
+
+// 스킬 타이머를 재설정하는 로직을 각 스킬별로 확장
+switch (skillKey) {
+    case 'fireEnergyBolt':
+        this.adjustFireBoltTimer(level);
+        break;
+    case 'castThunder':
+        this.adjustThunderTimer(level);
+        break;
+    case 'castDis':
+        this.adjustDisTimer(level);
+        break;
+    default:
+        break;
+}
+}
+    
+// 예시: fireEnergyBolt 스킬에 대한 타이머 조정
+adjustFireBoltTimer(level) {
+    console.log(`타이머 조정 메서드 호출됨, 스킬 레벨: ${level}, 기존 타이머 존재 여부: ${this.fireBoltTimerEvent ? '존재함' : '존재하지 않음'}`);
+    
+    if (level > 0 ){
+        if(!this.fireBoltTimerEvent) {
+        console.log("새로운 파이어볼트 타이머 이벤트를 생성합니다.");
+        this.fireBoltTimerEvent = this.time.addEvent({
+            delay: 5000,
+            callback: this.fireEnergyBolt,
+            callbackScope: this,
+            loop: true
+        });
+    } else {
+        console.log("기존에 파이어볼트 타이머 이벤트가 존재합니다.");
+    }
+    } else if (level === 0 && this.fireBoltTimerEvent) {
+        console.log("기존의 파이어볼트 타이머 이벤트를 제거합니다.");
+        this.fireBoltTimerEvent.remove();
+        this.fireBoltTimerEvent = null;
+    }
+}
+
+    
+
+
+
+    
+
+
+
 
 toggleMenu(){
     console.log("메뉴를 토글합니다.");
@@ -596,7 +644,7 @@ upgradeStats(){
 updateSkillPoints(points) {
     // 레지스트리에서 기존 스킬 포인트 가져오기
     const existingPoints = this.game.registry.get('playerSkillPoints') || 0;
-    this.playerSkillPoints += existingPoints + points;
+    this.playerSkillPoints += points;
     this.game.registry.set('playerSkillPoints', this.playerSkillPoints);
     // UIScene에 스킬 포인트 업데이트를 알립니다.
     this.events.emit('updateSkillPoints', this.playerSkillPoints);
@@ -668,24 +716,21 @@ updateGold(gold) {
 
 
 fireEnergyBolt(){
-    if(!this.skillsLearned.fireEnergyBolt || this.enemies.getChildren().length === 0){
+    console.log("fireEnergyBolt 함수 호출됨, 스킬 레벨: " + this.skills.fireEnergyBolt);
+     // 스킬 레벨에 따라 미사일 개수를 결정
+    let fireSkillLevel = this.skills.fireEnergyBolt;
+    if(fireSkillLevel === 0 || this.enemies.getChildren().length === 0){
+        console.log("발동할 스킬 레벨이 없거나 적이 존재하지 않습니다.");
         return;
     }
 
     // 가장 가까운 적을 찾음
-    let closestEnemy = this.enemies.getChildren().reduce((closest, enemy) => {
-        let currentDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-        if (currentDistance < closest.distance) {
-            return { distance: currentDistance, enemy: enemy };
-        }
-        return closest;
-    }, { distance: Infinity, enemy: null }).enemy;
-
-    if (!closestEnemy) {
-        // 가장 가까운 적이 없으면 아무것도 하지 않음
-        return;
-    }
-
+    let closestEnemy = this.enemies.getChildren()
+    .sort((a, b) => Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y))
+    .slice(0, fireSkillLevel); // 스킬 레벨에 따라 공격할 적의 수를 결정
+    
+    closestEnemy.forEach(enemy => {
+        if (!enemy) return;
     
     //에너지 볼트 속도 및 방향 설정
     let energyBolt = this.physics.add.sprite(this.player.x, this.player.y, 'vault').play('vault');
@@ -696,20 +741,25 @@ fireEnergyBolt(){
 
     //에너지볼트가 적에게 닿았을 때의 처리를 위한 충돌 설정
     this.physics.add.collider(energyBolt, this.enemies,(bolt,enemy)=>{
+        
+                
         bolt.destroy(); //에너지 볼트 제거
         this.playerHitEnemy(closestEnemy , energyBolt.damage)
-    })
+    });
 
     //에너지 볼트의 회전 각도 설정
     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, closestEnemy.x, closestEnemy.y);
     energyBolt.rotation = angle- (5 * Math.PI / 4);
+    });
 }
 
 //썬더로직
 castThunder(){
+    let thunderSkillLevel = this.skills.thunder;
+
      // 화면에 보이는 적 중에서 랜덤하게 하나 선택
     let visibleEnemies = this.enemies.getChildren().filter(enemy => enemy.visible);
-    if (!this.skillsLearned.castThunder ||visibleEnemies.length === 0) {
+    if (thunderSkillLevel === 0 ||visibleEnemies.length === 0) {
          return; // 화면에 보이는 적이 없으면 함수 종료
     }
 
@@ -738,7 +788,9 @@ castThunder(){
 
 castDis(){
 
-    if (!this.skillsLearned.castDis) {
+    let disSkillLevel = this.skills.dis;
+
+    if (disSkillLevel===0 || !this.skillsLearned.castDis) {
         return; // 스킬을 배우지 않았다면 함수 종료
     }
     //사용자 주위에서 랜덤 위치 생성
