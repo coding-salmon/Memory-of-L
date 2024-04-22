@@ -33,9 +33,26 @@ class StartScene extends Phaser.Scene {
         let startButton = this.add.image(400, 480, 'startButton').setInteractive();
         startButton.setScale(0.4);
         startButton.on('pointerdown', () => {
-            this.scene.start('GameScene'); // 게임 메인 장면으로 전환
-        });
+            let gameSceneKey = 'GameScene';
+            let uiSceneKey = 'UIScene';
+            
 
+        // GameScene 시작
+        // 게임 씬이 존재하지 않는 경우, 새롭게 추가하고 시작합니다.
+        if (!this.scene.get(gameSceneKey)) {
+            this.scene.add(gameSceneKey, GameScene, true);  // true로 설정하여 씬을 즉시 시작
+        }else{
+            this.scene.start(gameSceneKey); // 이미 존재하는 GameScene을 재시작
+        }
+            // UIScene이 존재하지 않으면 추가하고, 항상 최상위로 가져옵니다.
+        if (!this.scene.get(uiSceneKey)) {
+            this.scene.add(uiSceneKey, UIScene, true); // 새 UIScene 추가
+        } else {
+            this.scene.start(uiSceneKey); // 이미 존재하는 UIScene 재시작
+        }
+        this.scene.bringToTop(uiSceneKey); // UIScene을 최상위로 가져옴
+});
+        
         // 시작 화면의 타이틀, 설명 등을 표시합니다.
         this.add.text(400, 520, 'Memory of L', { fontSize: '32px', fill: '#fff' , fontStyle:'bold' }).setOrigin(0.5);
     }
@@ -66,6 +83,7 @@ var config={
         }
     }
 };
+
 
 
 var game=new Phaser.Game(config);
