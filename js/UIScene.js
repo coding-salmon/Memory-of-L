@@ -4,6 +4,7 @@ class UIScene extends Phaser.Scene{
         this.timerEvent = null;  // 타이머 이벤트를 저장할 변수
         this.pausedTime = 0;     // 일시정지된 시간을 기록
         this.elapsed = 0; //게임의 총 경과 시간
+        
     }
 
     create(){
@@ -33,7 +34,33 @@ class UIScene extends Phaser.Scene{
         });
 
         this.startTime = this.time.now - this.pausedTime;
+
+        this.restartTimer();  // 타이머 초기화 및 시작
         }
+
+        restartTimer() {
+        if (this.timerEvent) this.timerEvent.remove(false);  // 기존 타이머 이벤트가 있다면 제거
+        
+           // 타이머 텍스트가 이미 생성되었다면 재사용, 그렇지 않으면 새로 생성
+        if (!this.timerText) {
+        this.timerText = this.add.text(this.scale.width / 2, 20, '00:00', {
+            fontSize: '20px',
+            fill: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0).setDepth(3);
+    }
+        
+            this.timerEvent = this.time.addEvent({
+                delay: 1000,
+                callback: this.updateTimer,
+                callbackScope: this,
+                loop: true
+            });
+        
+            this.pausedTime = 0;  // 일시 정지된 시간 초기화
+            this.startTime = this.time.now;  // 시작 시간 설정
+        }
+        
 
     updateTimer(){
         this.elapsed = Math.floor((this.time.now - this.startTime) /1000);
@@ -107,8 +134,8 @@ toggleMenu() {
         //스탯 및 스킬 이름 배열
         const stats = ['[공격력] ' , '[공격속도] ' , '[방어력] ' , '[체력] ', '[이동속도] '];
         const statKeys = ['playerDamage', 'playerCasting', 'playerDefense', 'playerHp', 'playerSpeed'];
-        const skills = ['에너지볼트' , '콜라이트닝' , '디스인티그레이트'];
-        const skillKeys = ['fireEnergyBolt', 'castThunder', 'castDis'];
+        const skills = ['에너지볼트[1]' ,'단검투척[2]', '콜라이트닝[2]' , '소드스톰[3]'];
+        const skillKeys = ['fireEnergyBolt','castDagger', 'castThunder', 'castDis'];
         
          // 스탯 표시
     let yPosStats = 120; // 스탯 표시 시작 위치
@@ -142,7 +169,7 @@ toggleMenu() {
 
      // 스킬 포인트 표시
      let skillPoints = this.game.registry.get('playerSkillPoints') || 0; // 스킬 포인트 불러오기
-    let skillPointsText = this.add.text(420, yPosStats, `스킬 포인트: ${skillPoints}`, {
+    let skillPointsText = this.add.text(420, yPosStats+40, `스킬 포인트: ${skillPoints}`, {
         fontSize: '24px',
         fill: '#FFFF00',
         fontStyle: 'bold'
@@ -182,10 +209,14 @@ toggleMenu() {
         let skillData = this.game.registry.get(skillKey) || { level: 0 };
         const skillCosts = {
             fireEnergyBolt: 1, // 에너지볼트는 1 스킬 포인트 필요
+            castDagger: 2, // 단검투척은 1 스킬 포인트 필요
             castThunder: 2,   // 썬더는 2 스킬 포인트 필요
-            castDis: 5        // 디스는 5 스킬 포인트 필요
+            castDis: 3        // 디스는 3 스킬 포인트 필요
         };
-        const requiredPoints  = skillData.level === 0 ? skillCosts[skillKey] : skillCosts[skillKey] + skillData.level; // 스킬을 배우거나 강화하는 데 필요한 포인트
+
+         // 스킬을 배우거나 업그레이드할 때 동일한 포인트 필요
+        const requiredPoints = skillCosts[skillKey];
+
         
         // 사용자의 현재 스킬 포인트 가져오기
         let playerSkillPoints = this.game.registry.get('playerSkillPoints') || 0;

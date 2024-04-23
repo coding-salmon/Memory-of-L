@@ -6,7 +6,8 @@ class GameScene extends Phaser.Scene{
         this.skills = { // 스킬 레벨 관리
             fireEnergyBolt: 0,
             castThunder: 0,
-            castDis: 0
+            castDis: 0,
+            castDagger: 0
         };
         this.enemies = null; // 전역 변수로 선언합니다.
         this.player = null; // player 전역 변수로 선언
@@ -473,27 +474,11 @@ this.time.addEvent({
     loop: true
 });
 
-this.enemySpawnCount = 10; // 초기 적 생성 수
-this.currentInterval = 30000; // 30초 (30000 밀리초)
-    this.createEnemiesRepeatedly();
+// 30초마다 적의 수를 증가시키는 웨이브 생성
+this.waveCount = 10; // 초기 웨이브에서 생성될 적의 수
+this.createWave();
 
-   // 적 수 리셋 및 증가 로직
-    this.resetEnemiesEvent = this.time.addEvent({
-    delay: 30000, // 30초마다 실행
-    callback: () => {
-        if (this.enemyCount >= 60) {
-            // 최대 60마리 이후에는 다시 10마리로 리셋
-            this.enemyCount = 10;
-        } else {
-            // 10씩 증가
-            this.enemyCount += 10;
-        }
-        // 다음 이벤트 설정
-        this.createEnemiesRepeatedly();
-    },
-    callbackScope: this,
-    loop: true
-});
+
 
     //자동 공격 타이머 이벤트 설정
     this.time.addEvent({
@@ -529,17 +514,7 @@ this.currentInterval = 30000; // 30초 (30000 밀리초)
             frameRate:10,
             repeat: 0
     })
-    //썬더 공격 로직
-    this.time.addEvent({
-        delay: 5000, // 5초마다
-        callback: ()=>{
-            if (this.skills.thunder > 0) {
-                this.castThunder();
-            }
-        },
-        callbackScope: this,
-        loop: true
-    });
+
 
     //디스 애니메이션
     this.anims.create({
@@ -559,17 +534,7 @@ this.currentInterval = 30000; // 30초 (30000 밀리초)
 
         
     })
-     //디스 공격 로직
-    this.time.addEvent({
-        delay: 7000, // 7초마다
-        callback: ()=>{
-            if(this.skills.dis > 0){
-                this.castDis();
-            }
-        },
-        callbackScope: this,
-        loop: true
-    });
+
 
     //키보드 입력 활성화
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -579,28 +544,29 @@ this.currentInterval = 30000; // 30초 (30000 밀리초)
     
 
 }
+createWave() {
+    this.waveCount = 10; // 첫 웨이브에서 생성될 적의 수
+    this.waveTimerEvent = this.time.addEvent({
+        delay: 30000, // 30초마다 실행
+        callback: () => {
+            // 지정된 수의 적을 일괄적으로 생성
+            for (let i = 0; i < this.waveCount; i++) {
+                this.createEnemy();
+            }
+            console.log(`${this.waveCount}마리의 적이 웨이브로 생성되었습니다.`);
 
-createEnemiesRepeatedly() {
-    // 기존에 설정된 타이머 이벤트가 있다면 제거
-    if (this.enemyTimerEvent) {
-        this.enemyTimerEvent.remove();
-    }
-
-    // 적을 주기적으로 생성하는 타이머 이벤트 생성
-    this.enemyTimerEvent = this.time.addEvent({
-        delay: this.currentInterval, // 설정된 간격
-        callback: this.createMultipleEnemies, // 적 생성 함수
-        args: [this.enemyCount], // 생성할 적의 수를 인자로 전달
+            // 다음 웨이브에서 생성될 적의 수 증가
+            if ((this.waveTimerEvent.getOverallProgress() * 30) % 210 === 0) {
+                this.waveCount = 10; // 210초마다 적 수 리셋
+            } else {
+                this.waveCount += 10;
+            }
+        },
         callbackScope: this,
-        repeat: 5 // 5번 반복 후 멈춤
+        loop: true
     });
 }
 
-createMultipleEnemies(count) {
-    for (let i = 0; i < count; i++) {
-        this.createEnemy(); // 적 생성 로직 호출
-    }
-}
 
 handleSkillLevelChange(data) {
     const { skillKey, level } = data;
@@ -621,6 +587,9 @@ switch (skillKey) {
     case 'castDis':
         this.adjustDisTimer(level);
         break;
+    case 'castDagger':
+        this.adjustDaggerTimer(level);
+        break;
     default:
         break;
 }
@@ -634,27 +603,72 @@ adjustFireBoltTimer(level) {
         if(!this.fireBoltTimerEvent) {
         console.log("새로운 파이어볼트 타이머 이벤트를 생성합니다.");
         this.fireBoltTimerEvent = this.time.addEvent({
-            delay: 5000,
+            delay: 4000,
             callback: this.fireEnergyBolt,
             callbackScope: this,
             loop: true
         });
-    } else {
-        console.log("기존에 파이어볼트 타이머 이벤트가 존재합니다.");
-    }
     } else if (level === 0 && this.fireBoltTimerEvent) {
         console.log("기존의 파이어볼트 타이머 이벤트를 제거합니다.");
         this.fireBoltTimerEvent.remove();
         this.fireBoltTimerEvent = null;
     }
+    }
 }
 
-    
+// castThunder 스킬에 대한 타이머 조정
+adjustThunderTimer(level) {
+    console.log(`썬더 타이머 조정: 스킬 레벨 ${level}, 타이머 존재 여부: ${this.thunderTimerEvent ? '있음' : '없음'}`);
+    if (level > 0 && !this.thunderTimerEvent) {
+        console.log("새로운 썬더 타이머 이벤트 생성합니다.");
+        this.thunderTimerEvent = this.time.addEvent({
+            delay: 6000,
+            callback: this.castThunder,
+            callbackScope: this,
+            loop: true
+        });
+    } else if (level === 0 && this.thunderTimerEvent) {
+        console.log("썬더 타이머 이벤트를 제거합니다.");
+        this.thunderTimerEvent.remove();
+        this.thunderTimerEvent = null;
+    }
+}
 
+// castDis 스킬에 대한 타이머 조정
+adjustDisTimer(level) {
+    console.log(`디스 타이머 조정: 스킬 레벨 ${level}, 타이머 존재 여부: ${this.disTimerEvent ? '있음' : '없음'}`);
+    if (level > 0 && !this.disTimerEvent) {
+        console.log("새로운 디스 타이머 이벤트 생성합니다.");
+        this.disTimerEvent = this.time.addEvent({
+            delay: 10000,
+            callback: this.castDis,
+            callbackScope: this,
+            loop: true
+        });
+    } else if (level === 0 && this.disTimerEvent) {
+        console.log("디스 타이머 이벤트를 제거합니다.");
+        this.disTimerEvent.remove();
+        this.disTimerEvent = null;
+    }
+}
 
-
-    
-
+// 단검 투척 스킬에 대한 타이머 조정
+adjustDaggerTimer(level) {
+    console.log(`단검 타이머 조정: 스킬 레벨 ${level}, 타이머 존재 여부: ${this.daggerTimerEvent ? '있음' : '없음'}`);
+    if (level > 0 && !this.daggerTimerEvent) {
+        console.log("새로운 단검 타이머 이벤트를 생성합니다.");
+        this.daggerTimerEvent = this.time.addEvent({
+            delay: 1000,  // 단검 스킬의 타이머 간격 설정
+            callback: this.castDagger,
+            callbackScope: this,
+            loop: true
+        });
+    } else if (level === 0 && this.daggerTimerEvent) {
+        console.log("단검 타이머 이벤트를 제거합니다.");
+        this.daggerTimerEvent.remove();
+        this.daggerTimerEvent = null;
+    }
+}
 
 
 
@@ -804,51 +818,65 @@ fireEnergyBolt(){
 
 //썬더로직
 castThunder(){
-    let thunderSkillLevel = this.skills.thunder;
+    console.log("콜 라이트닝 함수 호출됨, 스킬 레벨: " + this.skills.castThunder);
 
-     // 화면에 보이는 적 중에서 랜덤하게 하나 선택
+    let thunderSkillLevel = this.skills.castThunder;
+
+    // 화면에 보이는 적 중에서 스킬 레벨만큼 랜덤하게 여러 명 선택
     let visibleEnemies = this.enemies.getChildren().filter(enemy => enemy.visible);
-    if (thunderSkillLevel === 0 ||visibleEnemies.length === 0) {
-         return; // 화면에 보이는 적이 없으면 함수 종료
+    if (thunderSkillLevel === 0 || visibleEnemies.length === 0) {
+        console.log("스킬 레벨이 0이거나, 화면에 보이는 적이 없습니다.");
+        return; // 화면에 보이는 적이 없으면 함수 종료
     }
 
-    let targetEnemy = Phaser.Math.RND.pick(visibleEnemies);
-    let randomX = targetEnemy.x;
-    let randomY = targetEnemy.y;
+    // 선택된 적들에게 썬더 스킬 적용
+    Phaser.Utils.Array.Shuffle(visibleEnemies).slice(0, thunderSkillLevel).forEach(targetEnemy => {
+        let randomX = targetEnemy.x;
+        let randomY = targetEnemy.y;
 
-    let thunder = this.add.sprite(randomX, randomY, 'thunder').play('thunder');
-    thunder.setScale(0.5);
-    thunder.damage = this.playerDamage;
+        let thunder = this.add.sprite(randomX, randomY, 'thunder').play('thunder');
+        thunder.setScale(0.5);
+        thunder.damage = this.playerDamage*1.5;
+
 
     //데미지 로직
     thunder.on('animationcomplete', ()=> {
         thunder.destroy();
 
-        //범위 추적 및 데미지 적용
-        this.enemies.getChildren().forEach(enemy => {
-            if(Phaser.Math.Distance.Between(thunder.x, thunder.y, enemy.x , enemy.y) <= 10) {
-                this.playerHitEnemy(enemy, thunder.damage);
-                
-            }
-        })
-    })
+     // 스킬 레벨에 따른 범위 설정
+     let damageRadius = thunderSkillLevel * 10;  // 1레벨: 10, 2레벨: 20, 3레벨: 30
 
+     // 선택된 적 주변의 모든 적들에게 데미지 적용
+    this.enemies.getChildren().forEach(enemy => {
+        if (Phaser.Math.Distance.Between(thunder.x, thunder.y, enemy.x, enemy.y) <= damageRadius) {
+            this.playerHitEnemy(thunder, enemy);
+            console.log(`썬더가 ${enemy.name}에게 피해를 입혔습니다.`);
+        }
+    });
+    });
+});
 }
 
 castDis(){
+    console.log("소드스톰 함수 호출됨, 스킬 레벨: " + this.skills.castDis);
 
-    let disSkillLevel = this.skills.dis;
+    let disSkillLevel = this.skills.castDis;
 
-    if (disSkillLevel===0 || !this.skillsLearned.castDis) {
+    if (disSkillLevel===0) {
+        console.log("디스 스킬을 배우지 않았거나 스킬 레벨이 0입니다.");
         return; // 스킬을 배우지 않았다면 함수 종료
     }
-    //사용자 주위에서 랜덤 위치 생성
+    //사용자 위치에서 생성
     let disX =this.player.x
     let disY =this.player.y
 
+    // 스킬 레벨에 따른 스케일과 범위 설정
+    let scale = 0.5 + 0.5 * (disSkillLevel - 1); // 스케일: 0.5, 1.0, 1.5
+    let damageRadius = 100 * disSkillLevel; // 범위: 100, 200, 300
+
     let dis = this.add.sprite(disX, disY, 'dis').play('dis');
-    dis.setScale(0.5);
-    dis.damage = 0;
+    dis.setScale(scale);
+    dis.damage = this.playerDamage*3;
 
     //데미지 로직
     dis.on('animationcomplete', ()=> {
@@ -856,17 +884,80 @@ castDis(){
 
         //범위 추적 및 데미지 적용
         this.enemies.getChildren().forEach(enemy => {
-            if(Phaser.Math.Distance.Between(dis.x, dis.y, enemy.x , enemy.y) <= 300) {
+            if(Phaser.Math.Distance.Between(dis.x, dis.y, enemy.x , enemy.y) <= damageRadius) {
                 //적에게 데미지 적용
-                this.playerHitEnemy(enemy, dis.damage); // 수정: 플레이어가 적에게 데미지 적용
+                this.playerHitEnemy(dis, enemy); // 수정: 플레이어가 적에게 데미지 적용
             }
         })
     })
 
 }
 
+//단검투척
+castDagger(){
+
+    console.log("단검투척 함수 호출됨, 스킬 레벨: " + this.skills.castDagger);
+    let daggerSkillLevel = this.skills.castDagger;
+
+    if(daggerSkillLevel === 0){
+        console.log("스킬 레벨이 0입니다.");
+        return; // 스킬을 배우지 않았다면 함수 종료
+    }
+
+    // 랜덤 방향을 위한 각도 설정
+    let randomAngle = Phaser.Math.Between(0, 360);
+
+    //플레이어의 위치와 방향을 기준으로 단검 생성
+    let dagger = this.physics.add.sprite(this.player.x, this.player.y, 'dagger').setScale(0.1, 0.2); // 단검 크기 조절;
+    dagger.setAngle(randomAngle); // 랜덤 방향 설정
+    dagger.damage = this.playerDamage/3; //피해량 설정
+    // 단검의 depth 설정
+    dagger.setDepth(3); // depth 값을 높게 설정하여 다른 오브젝트 위에 렌더링
+
+    // 단검 속도를 스킬 레벨에 따라 조정
+    let daggerSpeed = 500 + 50 * (daggerSkillLevel - 1);
+    //단검이 전진하는 로직
+    this.physics.velocityFromAngle(randomAngle,daggerSpeed,dagger.body.velocity); //초기 속도 500
+
+    // 단검의 물리 바디 크기와 위치 설정
+    dagger.body.setSize(48.5, 76.8); // 단검의 크기
+    dagger.body.setOffset(24.25, 100); // 단검 중앙 기준으로 오프셋 설정
 
 
+    // 단검이 화면 끝에 도달하거나 적에게 닿을 때의 처리
+    dagger.setCollideWorldBounds(true);
+    dagger.body.onWorldBounds = true; // 화면 경계에 닿으면 이벤트 발생
+
+    // 적과의 충돌 처리
+    this.physics.add.overlap(dagger, this.enemies, (dagger, enemy) => {
+        this.playerHitEnemy(dagger, enemy); // 적에게 피해를 입힘
+        // 충돌 후에도 속도를 유지하여 계속 전진
+        this.physics.velocityFromAngle(dagger.angle, daggerSpeed, dagger.body.velocity);
+        
+    });
+
+     // 화면 경계와의 충돌 처리
+    this.physics.world.on('worldbounds', (body) => {
+        if (body.gameObject === dagger && body.blocked.none === false) {
+            if (daggerSkillLevel === 1) {
+                // 1레벨 단검은 화면 경계에 닿으면 바로 파괴
+                dagger.destroy();
+            } else if (daggerSkillLevel > 1 && (!dagger.bounceCount || dagger.bounceCount < daggerSkillLevel - 1)) {
+                // 2레벨 이상 단검은 화면 경계에 닿을 때 방향을 반대로 하고 계속 이동
+                if (!dagger.bounceCount) dagger.bounceCount = 0;
+                dagger.bounceCount++;
+                dagger.setAngle(dagger.angle + 180);
+                this.physics.velocityFromAngle(dagger.angle, daggerSpeed, dagger.body.velocity);
+            } else {
+                // 지정된 횟수를 초과하면 단검 파괴
+                dagger.destroy();
+            
+            }
+        }
+    });
+
+    
+    }
 
 
 //hp바 그리기
@@ -889,8 +980,7 @@ updateHpBar() {
 // 게임 오버 화면 표시
 gameOver() {
 
-    this.physics.pause(); // 게임 물리 엔진 일시 정지
-    this.input.keyboard.destroy(); // 키보드 입력 비활성화
+    
 
     // 검은색 배경 추가
     let background = this.add.rectangle(this.sys.game.config.width / 2, this.sys.game.config.height / 2, this.sys.game.config.width, this.sys.game.config.height, 0x000000)
@@ -907,14 +997,32 @@ gameOver() {
         backgroundColor: '#000000'
     }).setOrigin(0.5).setPadding(10).setInteractive({ useHandCursor: true }).setDepth(5);
 
+    // this.physics.pause(); // 게임 물리 엔진 일시 정지
+    // this.input.keyboard.destroy(); // 키보드 입력 비활성화
 
     // 버튼 이벤트 리스너
     restartBtn.on('pointerdown', () => {
-        this.scene.start('StartScene'); // 'MainMenu'는 메인 메뉴 씬의 키입니다
+        console.log("재시작 버튼 클릭됨."); // 버튼이 클릭될 때 이 로그가 출력되는지 확인
+        // GameScene에서 골드 정보를 registry에 저장하는 함수 호출
+        this.scene.get('GameScene').saveGoldToRegistry();                
+        this.scene.start('StartScene'); // StartScene으로 이동
+        this.destroyModal();
+        this.destroy()
     });
+
+    this.modal = this.add.group([restartBtn, background, gameOverText]);
 
     
 }
+destroyModal() {
+    if (!this.modal) return;
+    this.modal.destroy(true);
+    this.modal = null;
+}
+
+destroy() {
+    this.scene.remove('GameScene');
+}    
 
 //자동 공격 실행 로직
 autoAttack(){
@@ -1143,7 +1251,10 @@ playerHitEnemy(attacker, enemy){
 
 // 데미지 텍스트 표시 함수
 showDamageText(x, y, damage) {
-    let damageText = this.add.text(x, y, damage.toString(), {
+    // 데미지 값을 정수로 반올림
+    let roundedDamage = Math.round(damage);
+
+    let damageText = this.add.text(x, y, roundedDamage.toString(), {
         fontSize: '18px',
         fill: '#ffffff',
         fontStyle: 'bold'
