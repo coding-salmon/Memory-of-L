@@ -87,82 +87,82 @@ preload(){
     //여기서 게임에 필요한 리소스를 미리 불러옵니다.
 
     //배경 이미지 가져오기
-    this.load.image('background', '/node_modules/phaser/assets/backgroundImage.png')
+    this.load.image('background', '../assets/backgroundImage.png')
 
     //플레이어 이미지 가져오기
-    this.load.image('player','/node_modules/phaser/assets/playerImage.png')
+    this.load.image('player','../assets/playerImage.png')
 
     //왼쪽 오른쪽 아래 이동하는 애니메이션 추가하기
-    this.load.image('frame1','/node_modules/phaser/assets/thiefFront_walk01.png');
-    this.load.image('frame2','/node_modules/phaser/assets/thiefFront_walk02.png');
-    this.load.image('frame3','/node_modules/phaser/assets/thiefFront_walk03.png');
-    this.load.image('frame4','/node_modules/phaser/assets/thiefFront_walk04.png');
-    this.load.image('frame5','/node_modules/phaser/assets/thiefFront_walk05.png');
-    this.load.image('frame6','/node_modules/phaser/assets/thiefFront_walk06.png');
-    this.load.image('frame7','/node_modules/phaser/assets/thiefFront_walk07.png');
-    this.load.image('frame8','/node_modules/phaser/assets/thiefFront_walk08.png');
+    this.load.image('frame1','../assets/thiefFront_walk01.png');
+    this.load.image('frame2','../assets/thiefFront_walk02.png');
+    this.load.image('frame3','../assets/thiefFront_walk03.png');
+    this.load.image('frame4','../assets/thiefFront_walk04.png');
+    this.load.image('frame5','../assets/thiefFront_walk05.png');
+    this.load.image('frame6','../assets/thiefFront_walk06.png');
+    this.load.image('frame7','../assets/thiefFront_walk07.png');
+    this.load.image('frame8','../assets/thiefFront_walk08.png');
 
 
     //플레이어 공격 애니메이션 추가하기
-    this.load.image('frame17', '/node_modules/phaser/assets/playerAttack/thief_atk01.png');
-    this.load.image('frame18', '/node_modules/phaser/assets/playerAttack/thief_atk02.png');
-    this.load.image('frame19', '/node_modules/phaser/assets/playerAttack/thief_atk03.png');
-    this.load.image('frame20', '/node_modules/phaser/assets/playerAttack/thief_atk04.png');
-    this.load.image('frame21', '/node_modules/phaser/assets/playerAttack/thief_atk05.png');
-    this.load.image('frame22', '/node_modules/phaser/assets/playerAttack/thief_atk06.png');
+    this.load.image('frame17', '../assets/playerAttack/thief_atk01.png');
+    this.load.image('frame18', '../assets/playerAttack/thief_atk02.png');
+    this.load.image('frame19', '../assets/playerAttack/thief_atk03.png');
+    this.load.image('frame20', '../assets/playerAttack/thief_atk04.png');
+    this.load.image('frame21', '../assets/playerAttack/thief_atk05.png');
+    this.load.image('frame22', '../assets/playerAttack/thief_atk06.png');
 
 
     
 
     //적 유닛 생성
-    this.load.image('enemy0', '/node_modules/phaser/assets/Enemy0/Enemy0.png');
-    this.load.image('enemy1', '/node_modules/phaser/assets/Enemy0/Enemy1.png');
-    this.load.image('enemy2', '/node_modules/phaser/assets/Enemy0/Enemy2.png');
-    this.load.image('enemy3', '/node_modules/phaser/assets/Enemy0/Enemy3.png');
+    this.load.image('enemy0', '../assets/Enemy0/Enemy0.png');
+    this.load.image('enemy1', '../assets/Enemy0/Enemy1.png');
+    this.load.image('enemy2', '../assets/Enemy0/Enemy2.png');
+    this.load.image('enemy3', '../assets/Enemy0/Enemy3.png');
 
     //적 유닛 피격 이미지
-    this.load.image('enemy4', '/node_modules/phaser/assets/Enemy0/Enemy4.png');
+    this.load.image('enemy4', '../assets/Enemy0/Enemy4.png');
 
     //적 유닛 죽을 때
-    this.load.image('enemy5', '/node_modules/phaser/assets/Enemy0/Enemy5.png');
+    this.load.image('enemy5', '../assets/Enemy0/Enemy5.png');
 
     //적w 유닛 생성
-    this.load.image('enemyW0', '/node_modules/phaser/assets/Enemy1/w0.png')
-    this.load.image('enemyW1', '/node_modules/phaser/assets/Enemy1/w1.png')
-    this.load.image('enemyW2', '/node_modules/phaser/assets/Enemy1/w2.png')
-    this.load.image('enemyW3', '/node_modules/phaser/assets/Enemy1/w3.png')
-    this.load.image('enemyW4', '/node_modules/phaser/assets/Enemy1/w4.png')
-    this.load.image('enemyW5', '/node_modules/phaser/assets/Enemy1/w5.png')
+    this.load.image('enemyW0', '../assets/Enemy1/w0.png')
+    this.load.image('enemyW1', '../assets/Enemy1/w1.png')
+    this.load.image('enemyW2', '../assets/Enemy1/w2.png')
+    this.load.image('enemyW3', '../assets/Enemy1/w3.png')
+    this.load.image('enemyW4', '../assets/Enemy1/w4.png')
+    this.load.image('enemyW5', '../assets/Enemy1/w5.png')
     //적w 피격 이미지
-    this.load.image('enemyW6', '/node_modules/phaser/assets/Enemy1/w6.png')
+    this.load.image('enemyW6', '../assets/Enemy1/w6.png')
     // 적w 유닛 죽을 때
-    this.load.image('enemyW7', '/node_modules/phaser/assets/Enemy1/w7.png')
+    this.load.image('enemyW7', '../assets/Enemy1/w7.png')
 
 
     //적t 유닛생성
-    this.load.image('enemyT0', '/node_modules/phaser/assets/Enemy2/t0.png')
-    this.load.image('enemyT1', '/node_modules/phaser/assets/Enemy2/t1.png')
+    this.load.image('enemyT0', '../assets/Enemy2/t0.png')
+    this.load.image('enemyT1', '../assets/Enemy2/t1.png')
 
     //적 t 피격이미지
-    this.load.image('enemyT2', '/node_modules/phaser/assets/Enemy2/t2.png')
+    this.load.image('enemyT2', '../assets/Enemy2/t2.png')
     //적 t 죽었을때 
-    this.load.image('enemyT3', '/node_modules/phaser/assets/Enemy2/t3.png')
+    this.load.image('enemyT3', '../assets/Enemy2/t3.png')
 
  
 
 
     //적 z 생성
-    this.load.image('enemyZ0', '/node_modules/phaser/assets/Enemy3/z0.png')
-    this.load.image('enemyZ1', '/node_modules/phaser/assets/Enemy3/z1.png')
-    this.load.image('enemyZ2', '/node_modules/phaser/assets/Enemy3/z2.png')
-    this.load.image('enemyZ3', '/node_modules/phaser/assets/Enemy3/z3.png')
-    this.load.image('enemyZ4', '/node_modules/phaser/assets/Enemy3/z4.png')
-    this.load.image('enemyZ5', '/node_modules/phaser/assets/Enemy3/z5.png')
+    this.load.image('enemyZ0', '../assets/Enemy3/z0.png')
+    this.load.image('enemyZ1', '../assets/Enemy3/z1.png')
+    this.load.image('enemyZ2', '../assets/Enemy3/z2.png')
+    this.load.image('enemyZ3', '../assets/Enemy3/z3.png')
+    this.load.image('enemyZ4', '../assets/Enemy3/z4.png')
+    this.load.image('enemyZ5', '../assets/Enemy3/z5.png')
     //적 z 피격
-    this.load.image('enemyZ6', '/node_modules/phaser/assets/Enemy3/z6.png')
+    this.load.image('enemyZ6', '../assets/Enemy3/z6.png')
 
     //적 z 죽었을때
-    this.load.image('enemyZ7', '/node_modules/phaser/assets/Enemy3/z7.png')
+    this.load.image('enemyZ7', '../assets/Enemy3/z7.png')
 
 
 
@@ -170,52 +170,52 @@ preload(){
 
 
     //적 o 생성
-    this.load.image('enemyO0','/node_modules/phaser/assets/Enemy4/o0.png')
-    this.load.image('enemyO1','/node_modules/phaser/assets/Enemy4/o1.png')
-    this.load.image('enemyO2','/node_modules/phaser/assets/Enemy4/o2.png')
-    this.load.image('enemyO3','/node_modules/phaser/assets/Enemy4/o3.png')
-    this.load.image('enemyO4','/node_modules/phaser/assets/Enemy4/o4.png')
-    this.load.image('enemyO5','/node_modules/phaser/assets/Enemy4/o5.png')
+    this.load.image('enemyO0','../assets/Enemy4/o0.png')
+    this.load.image('enemyO1','../assets/Enemy4/o1.png')
+    this.load.image('enemyO2','../assets/Enemy4/o2.png')
+    this.load.image('enemyO3','../assets/Enemy4/o3.png')
+    this.load.image('enemyO4','../assets/Enemy4/o4.png')
+    this.load.image('enemyO5','../assets/Enemy4/o5.png')
     //적 o 피격
-    this.load.image('enemyO6','/node_modules/phaser/assets/Enemy4/o6.png')
+    this.load.image('enemyO6','../assets/Enemy4/o6.png')
     //적 o 죽었을때
-    this.load.image('enemyO7','/node_modules/phaser/assets/Enemy4/o7.png')
+    this.load.image('enemyO7','../assets/Enemy4/o7.png')
 
 
   
 
 
     //골드 이미지 생성
-    this.load.image('gold','/node_modules/phaser/assets/gold/gold1.png')
+    this.load.image('gold','../assets/gold/gold1.png')
 
     //파이어볼트 이미지 생성
-    this.load.image('vault0', '/node_modules/phaser/assets/fire/fire0.png')
-    this.load.image('vault1', '/node_modules/phaser/assets/fire/fire1.png')
-    this.load.image('vault2', '/node_modules/phaser/assets/fire/fire2.png')
-    this.load.image('vault3', '/node_modules/phaser/assets/fire/fire3.png')
-    this.load.image('vault4', '/node_modules/phaser/assets/fire/fire4.png')
+    this.load.image('vault0', '../assets/fire/fire0.png')
+    this.load.image('vault1', '../assets/fire/fire1.png')
+    this.load.image('vault2', '../assets/fire/fire2.png')
+    this.load.image('vault3', '../assets/fire/fire3.png')
+    this.load.image('vault4', '../assets/fire/fire4.png')
 
 
     //썬더 이미지 생성
-    this.load.image('thunder0', '/node_modules/phaser/assets/thunder/thunder0.png');
-    this.load.image('thunder1', '/node_modules/phaser/assets/thunder/thunder1.png');
-    this.load.image('thunder2', '/node_modules/phaser/assets/thunder/thunder2.png');
+    this.load.image('thunder0', '../assets/thunder/thunder0.png');
+    this.load.image('thunder1', '../assets/thunder/thunder1.png');
+    this.load.image('thunder2', '../assets/thunder/thunder2.png');
 
     //dis 이미지 생성
-    this.load.image('dis0', '/node_modules/phaser/assets/dis/dis0.png');
-    this.load.image('dis1', '/node_modules/phaser/assets/dis/dis1.png');
-    this.load.image('dis2', '/node_modules/phaser/assets/dis/dis2.png');
-    this.load.image('dis3', '/node_modules/phaser/assets/dis/dis3.png');
-    this.load.image('dis4', '/node_modules/phaser/assets/dis/dis4.png');
-    this.load.image('dis5', '/node_modules/phaser/assets/dis/dis5.png');
-    this.load.image('dis6', '/node_modules/phaser/assets/dis/dis6.png');
-    this.load.image('dis7', '/node_modules/phaser/assets/dis/dis7.png');
+    this.load.image('dis0', '../assets/dis/dis0.png');
+    this.load.image('dis1', '../assets/dis/dis1.png');
+    this.load.image('dis2', '../assets/dis/dis2.png');
+    this.load.image('dis3', '../assets/dis/dis3.png');
+    this.load.image('dis4', '../assets/dis/dis4.png');
+    this.load.image('dis5', '../assets/dis/dis5.png');
+    this.load.image('dis6', '../assets/dis/dis6.png');
+    this.load.image('dis7', '../assets/dis/dis7.png');
 
     //단검 이미지 생성
-    this.load.image('dagger', '/node_modules/phaser/assets/dagger/dagger.png');
+    this.load.image('dagger', '../assets/dagger/dagger.png');
 
     //파티클 이미지 생성
-    this.load.image('spark' , '/node_modules/phaser/assets/fire.png')
+    this.load.image('spark' , '../assets/fire.png')
 
 
 }
