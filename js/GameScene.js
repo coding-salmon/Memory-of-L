@@ -294,7 +294,7 @@ create(){
 
     // 디버그 그래픽 활성화
     const debugGraphics = this.add.graphics().setAlpha(0.75);
-    this.physics.world.createDebugGraphic().setVisible(true); // 물리 디버그 그래픽 활성화
+    this.physics.world.createDebugGraphic().setVisible(false); // 물리 디버그 그래픽 활성화
 
     //HP 바 그래픽 생성
     this.hpBar = this.add.graphics();
