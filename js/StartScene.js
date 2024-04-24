@@ -15,7 +15,7 @@ class StartScene extends Phaser.Scene {
 
          // 화면 오른쪽 상단에 골드 표시
         let gold = this.game.registry.get('gold') || 0;  // 게임 레지스트리에서 골드 값을 가져옴, 없으면 0으로 설정
-        this.goldText = this.add.text(700, 20, `Gold: ${gold}`, {
+        this.goldText = this.add.text(this.cameras.main.width * 0.95, this.cameras.main.height *0.0333, `Gold: ${gold}`, {
         fontSize: '20px',
         fontStyle: 'bold',
         fill: '#ffd700'
@@ -30,7 +30,7 @@ class StartScene extends Phaser.Scene {
         bg.displayHeight = this.sys.game.config.height;
 
         // 시작 버튼을 추가하고 클릭 이벤트를 설정합니다.
-        let startButton = this.add.image(400, 480, 'startButton').setInteractive();
+        let startButton = this.add.image(this.cameras.main.width / 2, this.cameras.main.height * 0.8, 'startButton').setInteractive();
         startButton.setScale(0.4);
         startButton.on('pointerdown', () => {
             let gameSceneKey = 'GameScene';
@@ -54,11 +54,13 @@ class StartScene extends Phaser.Scene {
 });
         
         // 시작 화면의 타이틀, 설명 등을 표시합니다.
-        this.add.text(400, 520, 'Memory of L', { fontSize: '32px', fill: '#fff' , fontStyle:'bold' }).setOrigin(0.5);
+        this.add.text(this.cameras.main.width / 2, this.cameras.main.height * 0.867, 'Memory of L', { fontSize: '32px', fill: '#fff' , fontStyle:'bold' }).setOrigin(0.5);
     }
 }
 
-
+function isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
 
 //게임의 초기 설정을 위한 config 객체입니다.
 var config={
@@ -78,12 +80,17 @@ var config={
         default: 'arcade',
         arcade:{
             gravity: {y: 0}, 
-            debug: true
+            debug: false
 
         }
     }
 };
 
+if(isMobile()){
+    //모바일 디바이스의 경우 화면 크기에 맞춤
+    config.scale.width = window.innerWidth;
+    config.scale.height = window.innerHeight;
+}
 
 
 var game=new Phaser.Game(config);

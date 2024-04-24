@@ -15,3 +15,11 @@ html, body {
     justify-content: center;
     align-items: center;
 }
+
+/* 미디어 쿼리를 사용하여 모바일 기기에서의 스타일 조정 */
+@media (max-width: 768px) { /* 768px 이하의 너비를 가진 장치에 대한 설정 */
+    #phaser-container {
+        width: 100vw; /* 뷰포트의 100% 너비 */
+        height: 100vh; /* 뷰포트의 100% 높이 */
+    }
+}
