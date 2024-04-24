@@ -5,8 +5,8 @@ class StartScene extends Phaser.Scene {
 
     preload() {
         // 로고, 시작 버튼 등의 리소스를 불러옵니다.
-        this.load.image('startButton', '../assets/start.png');
-        this.load.image('st_background', '../assets/mol.png')
+        this.load.image('startButton', './assets/start.png');
+        this.load.image('st_background', './assets/mol.png')
     }
 
     create() {
